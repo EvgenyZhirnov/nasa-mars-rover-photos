@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ru" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Фотографии марсохода</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    
+    <div class="container">
+        <header class="page-header">
+            <h1><i class="fas fa-rocket mars-accent"></i> Фотографии <span class="mars-accent">NASA</span></h1>
+            <p class="lead">Последние фотографии с Марса и Земли от NASA</p>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-home"></i> Вернуться на главную
+            </a>
+        </header>
+        
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="h5 mb-0"><i class="fas fa-image"></i> Все фотографии</h2>
+                    </div>
+                    <div class="card-body">
+                        {% if photos %}
+                            <div class="photo-grid">
+                                {% for photo in photos %}
+                                <div class="photo-container">
+                                    <a href="{{ photo.path }}" target="_blank" class="photo-link">
+                                        <img src="{{ photo.path }}" alt="{{ photo.name }}" class="img-thumbnail photo-thumbnail">
+                                    </a>
+                                    <div class="photo-info">
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar"></i> {{ photo.date }}<br>
+                                            <span class="text-truncate d-inline-block" style="max-width: 100%;">
+                                                {% if photo.source %}
+                                                <span class="badge {% if photo.type == 'rover' %}bg-danger{% elif photo.type == 'apod' %}bg-primary{% elif photo.type == 'epic' %}bg-success{% else %}bg-secondary{% endif %}">
+                                                    {{ photo.source }}
+                                                </span>
+                                                {% endif %}
+                                                {{ photo.name }}
+                                            </span>
+                                        </small>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning" role="alert">
+                                <i class="fas fa-exclamation-triangle"></i> 
+                                Фотографии еще не загружены. Пожалуйста, проверьте позже.
+                            </div>
+                            <div class="text-center">
+                                <img src="/static/waiting-stars.svg" alt="Ожидание фотографий" 
+                                     class="img-fluid" style="max-height: 300px;">
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h2 class="h5 mb-0"><i class="fas fa-info-circle"></i> О фотографиях</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-danger text-white">
+                                        <i class="fas fa-rocket"></i> Марсоход
+                                    </div>
+                                    <div class="card-body">
+                                        <p>
+                                            Марсоход Curiosity был запущен NASA 26 ноября 2011 года и успешно приземлился в кратере Гейла на Марсе 
+                                            6 августа 2012 года. Его миссия заключается в изучении марсианского климата и геологии, 
+                                            а также в поиске признаков жизни.
+                                        </p>
+                                        <p class="mb-0">
+                                            <small class="text-muted">
+                                                Источник изображений: NASA/JPL-Caltech
+                                            </small>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-primary text-white">
+                                        <i class="fas fa-star"></i> Фото дня NASA (APOD)
+                                    </div>
+                                    <div class="card-body">
+                                        <p>
+                                            Astronomy Picture of the Day (APOD) - это сервис NASA, который каждый день публикует
+                                            фотографию космоса вместе с кратким объяснением, написанным астрономом. Этот проект
+                                            работает с 1995 года и предоставляет уникальные изображения космических объектов и явлений.
+                                        </p>
+                                        <p class="mb-0">
+                                            <small class="text-muted">
+                                                Источник изображений: NASA
+                                            </small>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-success text-white">
+                                        <i class="fas fa-globe"></i> EPIC (Снимки Земли)
+                                    </div>
+                                    <div class="card-body">
+                                        <p>
+                                            Earth Polychromatic Imaging Camera (EPIC) - это камера на борту спутника DSCOVR, 
+                                            которая делает регулярные снимки освещённой стороны Земли. Находясь на расстоянии
+                                            около 1,5 миллиона километров от Земли, DSCOVR предоставляет полные снимки нашей планеты.
+                                        </p>
+                                        <p class="mb-0">
+                                            <small class="text-muted">
+                                                Источник изображений: NASA/NOAA
+                                            </small>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="mt-5">
+        <div class="container">
+            <p>Приложение космических фотографий NASA &copy; <span id="currentYear"></span></p>
+        </div>
+    </footer>
+    
+    <script>
+        // Set current year in footer
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+        
+        // Create star background
+        function createStars() {
+            const stars = document.getElementById('stars');
+            const numberOfStars = 100;
+            
+            for (let i = 0; i < numberOfStars; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                
+                // Random position
+                const left = Math.random() * 100;
+                const top = Math.random() * 100;
+                
+                // Random size
+                const size = Math.random() * 3;
+                
+                // Random animation delay
+                const delay = Math.random() * 5;
+                
+                star.style.left = `${left}%`;
+                star.style.top = `${top}%`;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.animationDelay = `${delay}s`;
+                
+                stars.appendChild(star);
+            }
+        }
+        
+        // Initialize when document is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            createStars();
+        });
+    </script>
+</body>
+</html>
