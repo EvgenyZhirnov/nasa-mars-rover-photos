@@ -61,6 +61,10 @@ def bootstrap():
     """Run the full startup sequence exactly once."""
     logger.info("Bootstrap started")
     ensure_directories()
+
+    import comments
+    comments.init_db()
+
     run_initial_sync()
     start_services()
     logger.info("Bootstrap complete")
