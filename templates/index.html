@@ -3,79 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Фотографии марсохода</title>
+    <title>Фотографии марсохода / Mars Rover Photos</title>
     <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .lang-switcher {
+            position: fixed;
+            top: 15px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .lang-btn {
+            font-size: 0.8rem;
+            padding: 4px 10px;
+        }
+        [data-lang="en"] .ru { display: none; }
+        [data-lang="ru"] .en { display: none; }
+    </style>
 </head>
-<body>
+<body data-lang="ru">
     <div class="stars" id="stars"></div>
-    
+
+    <div class="lang-switcher">
+        <button class="btn btn-outline-secondary btn-sm lang-btn" onclick="setLang('ru')">RU</button>
+        <button class="btn btn-outline-secondary btn-sm lang-btn" onclick="setLang('en')">EN</button>
+    </div>
+
     <div class="container">
         <header class="page-header">
-            <h1><i class="fas fa-rocket mars-accent"></i> Марсоход <span class="mars-accent">NASA</span></h1>
-            <p class="lead">Ежедневные анимации с миссии марсохода NASA</p>
+            <h1>
+                <i class="fas fa-rocket mars-accent"></i>
+                <span class="ru">Марсоход <span class="mars-accent">NASA</span></span>
+                <span class="en">NASA <span class="mars-accent">Mars Rover</span></span>
+            </h1>
+            <p class="lead">
+                <span class="ru">Ежедневные анимации с миссии марсохода NASA</span>
+                <span class="en">Daily animations from NASA Mars rover missions</span>
+            </p>
             {% if error %}
-            <div class="alert alert-danger" role="alert">
-                {{ error }}
-            </div>
+            <div class="alert alert-danger" role="alert">{{ error }}</div>
             {% endif %}
         </header>
-        
+
         <div class="row">
             <div class="col-md-8 offset-md-2">
+
                 <div class="card">
                     <div class="card-header">
-                        <h2 class="h5 mb-0"><i class="fas fa-photo-film"></i> Анимация марсохода</h2>
+                        <h2 class="h5 mb-0">
+                            <i class="fas fa-photo-film"></i>
+                            <span class="ru">Анимация марсохода</span>
+                            <span class="en">Rover Animation</span>
+                        </h2>
                     </div>
                     <div class="card-body">
                         <p>
-                            Это приложение получает последние фотографии с миссии марсохода NASA
-                            и создает из них ежедневные анимации. Новые изображения загружаются 25 раз в час,
-                            а новая анимация создается каждый день в 16:00.
+                            <span class="ru">
+                                Это приложение получает последние фотографии с миссии марсохода NASA
+                                и создаёт из них ежедневные анимации. Новые изображения загружаются 25 раз в час,
+                                а новая анимация создаётся каждый день в 16:00.
+                            </span>
+                            <span class="en">
+                                This app fetches the latest photos from NASA Mars rover missions
+                                and compiles them into daily animations. New images are downloaded 25 times per hour,
+                                and a new animation is generated every day at 16:00.
+                            </span>
                         </p>
-                        
+
                         <div class="animation-container" id="animationPlaceholder">
                             <div class="d-flex align-items-center justify-content-center" style="height: 300px;">
                                 <div class="text-center">
                                     <div class="spinner-border mars-accent" role="status">
-                                        <span class="visually-hidden">Загрузка...</span>
+                                        <span class="visually-hidden">
+                                            <span class="ru">Загрузка...</span>
+                                            <span class="en">Loading...</span>
+                                        </span>
                                     </div>
-                                    <p class="mt-3">Проверка наличия анимации...</p>
+                                    <p class="mt-3">
+                                        <span class="ru">Проверка наличия анимации...</span>
+                                        <span class="en">Checking for animation...</span>
+                                    </p>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
                             <a href="{{ url_for('get_animation') }}" class="btn btn-primary">
-                                <i class="fas fa-download"></i> Скачать анимацию
+                                <i class="fas fa-download"></i>
+                                <span class="ru">Скачать анимацию</span>
+                                <span class="en">Download Animation</span>
                             </a>
                             <a href="{{ url_for('view_animation') }}" class="btn btn-secondary">
-                                <i class="fas fa-eye"></i> Просмотр анимации
+                                <i class="fas fa-eye"></i>
+                                <span class="ru">Просмотр анимации</span>
+                                <span class="en">View Animation</span>
                             </a>
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="card">
                     <div class="card-header">
-                        <h2 class="h5 mb-0"><i class="fas fa-info-circle"></i> Статус системы</h2>
+                        <h2 class="h5 mb-0">
+                            <i class="fas fa-info-circle"></i>
+                            <span class="ru">Статус системы</span>
+                            <span class="en">System Status</span>
+                        </h2>
                     </div>
                     <div class="card-body">
                         <div id="systemStatus">
                             <div class="text-center">
-                                <div class="spinner-border" role="status">
-                                    <span class="visually-hidden">Загрузка...</span>
-                                </div>
-                                <p class="mt-2">Загрузка статуса...</p>
+                                <div class="spinner-border" role="status"></div>
+                                <p class="mt-2">
+                                    <span class="ru">Загрузка статуса...</span>
+                                    <span class="en">Loading status...</span>
+                                </p>
                             </div>
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h2 class="h5 mb-0"><i class="fas fa-star"></i> Астрономическое фото дня</h2>
+                        <h2 class="h5 mb-0">
+                            <i class="fas fa-star"></i>
+                            <span class="ru">Астрономическое фото дня</span>
+                            <span class="en">Astronomy Picture of the Day</span>
+                        </h2>
                         <a href="{{ url_for('get_apod_data') }}" class="btn btn-outline-info btn-sm">
                             <i class="fas fa-info-circle"></i> JSON
                         </a>
@@ -87,8 +142,13 @@
                                     <img src="{{ apod.file_path }}" alt="{{ apod.title }}" class="img-fluid">
                                 {% else %}
                                     <div class="alert alert-info" role="alert">
-                                        <i class="fas fa-film"></i> 
-                                        Сегодняшнее фото дня - это видео. <a href="{{ apod.url }}" target="_blank">Просмотреть на сайте NASA</a>
+                                        <i class="fas fa-film"></i>
+                                        <span class="ru">Сегодняшнее фото дня — это видео.</span>
+                                        <span class="en">Today's APOD is a video.</span>
+                                        <a href="{{ apod.url }}" target="_blank">
+                                            <span class="ru">Просмотреть на сайте NASA</span>
+                                            <span class="en">Watch on NASA website</span>
+                                        </a>
                                     </div>
                                 {% endif %}
                                 <h3 class="apod-title">{{ apod.title }}</h3>
@@ -104,166 +164,170 @@
                             </div>
                         {% else %}
                             <div class="alert alert-warning" role="alert">
-                                <i class="fas fa-exclamation-triangle"></i> 
-                                Фото дня пока недоступно. Пожалуйста, попробуйте позже.
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span class="ru">Фото дня пока недоступно. Пожалуйста, попробуйте позже.</span>
+                                <span class="en">APOD is not available yet. Please try again later.</span>
                             </div>
                             <div class="text-center">
-                                <img src="/static/waiting-stars.svg" alt="Ожидание фото дня" 
-                                     class="img-fluid" style="max-height: 200px;">
+                                <img src="/static/waiting-stars.svg" alt="Waiting" class="img-fluid" style="max-height: 200px;">
                             </div>
                         {% endif %}
                     </div>
                 </div>
-                
+
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h2 class="h5 mb-0"><i class="fas fa-robot"></i> О проекте</h2>
+                        <h2 class="h5 mb-0">
+                            <i class="fas fa-robot"></i>
+                            <span class="ru">О проекте</span>
+                            <span class="en">About the Project</span>
+                        </h2>
                         <a href="{{ url_for('view_photos') }}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-images"></i> Все фотографии
+                            <i class="fas fa-images"></i>
+                            <span class="ru">Все фотографии</span>
+                            <span class="en">All Photos</span>
                         </a>
                     </div>
                     <div class="card-body">
-                        <p>Это приложение выполняет следующие задачи:</p>
+                        <p>
+                            <span class="ru">Это приложение выполняет следующие задачи:</span>
+                            <span class="en">This application performs the following tasks:</span>
+                        </p>
                         <ul>
-                            <li>Получает фотографии марсохода через API NASA каждые 2,4 минуты (25 раз в час)</li>
-                            <li>Сохраняет новые изображения в каталог данных с уникальными именами файлов</li>
-                            <li>Создает ежедневную анимацию в 16:00 из всех собранных за день изображений</li>
-                            <li>Предоставляет веб-интерфейс для скачивания и просмотра последней анимации</li>
-                            <li>Автоматически отправляет анимацию через Telegram-бота в 16:05</li>
-                            <li>Показывает астрономическое фото дня от NASA (APOD)</li>
+                            <li>
+                                <span class="ru">Получает фотографии марсохода через API NASA каждые 2,4 минуты (25 раз в час)</span>
+                                <span class="en">Fetches Mars rover photos via NASA API every 2.4 minutes (25 times per hour)</span>
+                            </li>
+                            <li>
+                                <span class="ru">Сохраняет новые изображения в каталог данных с уникальными именами файлов</span>
+                                <span class="en">Saves new images to the data directory with unique filenames</span>
+                            </li>
+                            <li>
+                                <span class="ru">Создаёт ежедневную анимацию в 16:00 из всех собранных за день изображений</span>
+                                <span class="en">Generates a daily animation at 16:00 from all images collected that day</span>
+                            </li>
+                            <li>
+                                <span class="ru">Предоставляет веб-интерфейс для скачивания и просмотра последней анимации</span>
+                                <span class="en">Provides a web interface for downloading and viewing the latest animation</span>
+                            </li>
+                            <li>
+                                <span class="ru">Автоматически отправляет анимацию через Telegram-бота в 16:05</span>
+                                <span class="en">Automatically sends the animation via Telegram bot at 16:05</span>
+                            </li>
+                            <li>
+                                <span class="ru">Показывает астрономическое фото дня от NASA (APOD) и снимки Земли (EPIC)</span>
+                                <span class="en">Displays NASA Astronomy Picture of the Day (APOD) and Earth imagery (EPIC)</span>
+                            </li>
                         </ul>
                         <p>
                             <a href="https://api.nasa.gov/" target="_blank" class="btn btn-sm btn-outline-info">
-                                <i class="fas fa-external-link-alt"></i> API NASA
+                                <i class="fas fa-external-link-alt"></i> NASA API
                             </a>
                         </p>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>
-    
+
     <footer class="mt-5">
         <div class="container">
-            <p>Приложение фотографий марсохода &copy; <span id="currentYear"></span></p>
+            <p>
+                <span class="ru">Приложение фотографий марсохода</span>
+                <span class="en">Mars Rover Photos App</span>
+                &copy; <span id="currentYear"></span>
+            </p>
         </div>
     </footer>
-    
+
     <script>
-        // Set current year in footer
         document.getElementById('currentYear').textContent = new Date().getFullYear();
-        
-        // Create star background
+
+        function setLang(lang) {
+            document.body.setAttribute('data-lang', lang);
+            localStorage.setItem('lang', lang);
+        }
+
         function createStars() {
             const stars = document.getElementById('stars');
-            const numberOfStars = 100;
-            
-            for (let i = 0; i < numberOfStars; i++) {
+            for (let i = 0; i < 100; i++) {
                 const star = document.createElement('div');
                 star.classList.add('star');
-                
-                // Random position
-                const left = Math.random() * 100;
-                const top = Math.random() * 100;
-                
-                // Random size
-                const size = Math.random() * 3;
-                
-                // Random animation delay
-                const delay = Math.random() * 5;
-                
-                star.style.left = `${left}%`;
-                star.style.top = `${top}%`;
-                star.style.width = `${size}px`;
-                star.style.height = `${size}px`;
-                star.style.animationDelay = `${delay}s`;
-                
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.width = `${Math.random() * 3}px`;
+                star.style.height = star.style.width;
+                star.style.animationDelay = `${Math.random() * 5}s`;
                 stars.appendChild(star);
             }
         }
-        
-        // Check if animation exists and update the placeholder
+
         function checkAnimation() {
+            const lang = document.body.getAttribute('data-lang') || 'ru';
             fetch('/status')
                 .then(response => response.json())
                 .then(data => {
-                    updateSystemStatus(data);
-                    
+                    updateSystemStatus(data, lang);
+                    const placeholder = document.getElementById('animationPlaceholder');
                     if (data.has_animation) {
-                        // Show animation preview or link
-                        const placeholder = document.getElementById('animationPlaceholder');
                         placeholder.innerHTML = `
-                            <p class="mb-3">Последняя анимация от ${data.animation_last_updated}</p>
+                            <p class="mb-3">${lang === 'ru' ? 'Последняя анимация от' : 'Latest animation from'} ${data.animation_last_updated}</p>
                             <a href="/animation/view" class="d-block">
                                 <div class="animation-preview">
-                                    <img src="/static/mars-rover-preview.svg" alt="Предпросмотр анимации марсохода" 
+                                    <img src="/static/mars-rover-preview.svg" alt="Mars Rover Animation"
                                          class="img-fluid" style="max-height: 250px;">
                                     <div class="mt-2">
-                                        <span class="badge bg-success">Анимация доступна</span>
+                                        <span class="badge bg-success">${lang === 'ru' ? 'Анимация доступна' : 'Animation available'}</span>
                                     </div>
                                 </div>
-                            </a>
-                        `;
+                            </a>`;
                     } else {
-                        // Show "no animation yet" message
-                        const placeholder = document.getElementById('animationPlaceholder');
                         placeholder.innerHTML = `
                             <div class="alert alert-warning" role="alert">
-                                <i class="fas fa-exclamation-triangle"></i> 
-                                Анимация еще не создана. Первая анимация будет создана в 16:00.
+                                <i class="fas fa-exclamation-triangle"></i>
+                                ${lang === 'ru' ? 'Анимация ещё не создана. Первая анимация будет создана в 16:00.' : 'No animation yet. The first one will be generated at 16:00.'}
                             </div>
                             <div class="text-center">
-                                <img src="/static/mars-rover-waiting.svg" alt="Ожидание марсохода" 
-                                     class="img-fluid" style="max-height: 200px;">
-                            </div>
-                        `;
+                                <img src="/static/mars-rover-waiting.svg" alt="Waiting" class="img-fluid" style="max-height: 200px;">
+                            </div>`;
                     }
                 })
-                .catch(error => {
-                    console.error('Error fetching status:', error);
-                    const placeholder = document.getElementById('animationPlaceholder');
-                    placeholder.innerHTML = `
-                        <div class="alert alert-danger" role="alert">
-                            <i class="fas fa-exclamation-circle"></i> 
-                            Ошибка при проверке статуса анимации. Пожалуйста, попробуйте позже.
-                        </div>
-                    `;
+                .catch(() => {
+                    const lang = document.body.getAttribute('data-lang') || 'ru';
+                    document.getElementById('animationPlaceholder').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle"></i>
+                            ${lang === 'ru' ? 'Ошибка при проверке статуса. Попробуйте позже.' : 'Error checking status. Please try again later.'}
+                        </div>`;
                 });
         }
-        
-        // Update system status display
-        function updateSystemStatus(data) {
-            const systemStatus = document.getElementById('systemStatus');
-            
-            systemStatus.innerHTML = `
+
+        function updateSystemStatus(data, lang) {
+            const ru = lang === 'ru';
+            document.getElementById('systemStatus').innerHTML = `
                 <div class="status-indicator">
                     <div class="indicator ${data.status === 'operational' ? 'active' : 'inactive'}"></div>
-                    <span>Статус системы: ${data.status === 'operational' ? 'Работает' : 'Ошибка'}</span>
+                    <span>${ru ? 'Статус системы' : 'System status'}: ${data.status === 'operational' ? (ru ? 'Работает' : 'Operational') : (ru ? 'Ошибка' : 'Error')}</span>
                 </div>
-                
                 <div class="status-indicator">
                     <div class="indicator ${data.has_animation ? 'active' : 'inactive'}"></div>
-                    <span>Статус анимации: ${data.has_animation ? 'Доступна' : 'Еще не создана'}</span>
+                    <span>${ru ? 'Статус анимации' : 'Animation'}: ${data.has_animation ? (ru ? 'Доступна' : 'Available') : (ru ? 'Ещё не создана' : 'Not yet generated')}</span>
                 </div>
-                
                 <div class="mt-3">
                     <small>
-                        <i class="fas fa-images"></i> Собрано изображений: ${data.image_count}<br>
-                        <i class="fas fa-clock"></i> Текущее время сервера: ${data.current_time}<br>
-                        ${data.animation_last_updated ? 
-                            `<i class="fas fa-history"></i> Анимация обновлена: ${data.animation_last_updated}` : 
-                            ''}
+                        <i class="fas fa-images"></i> ${ru ? 'Собрано изображений' : 'Images collected'}: ${data.image_count}<br>
+                        <i class="fas fa-clock"></i> ${ru ? 'Время сервера' : 'Server time'}: ${data.current_time}<br>
+                        ${data.animation_last_updated ? `<i class="fas fa-history"></i> ${ru ? 'Анимация обновлена' : 'Animation updated'}: ${data.animation_last_updated}` : ''}
                     </small>
-                </div>
-            `;
+                </div>`;
         }
-        
-        // Initialize when document is ready
+
         document.addEventListener('DOMContentLoaded', function() {
+            const saved = localStorage.getItem('lang');
+            if (saved) setLang(saved);
             createStars();
             checkAnimation();
-            
-            // Refresh status every 60 seconds
             setInterval(checkAnimation, 60000);
         });
     </script>
