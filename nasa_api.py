@@ -1,19 +1,18 @@
 """
 Module for interacting with NASA's Mars Rover Photos API.
 """
-import os
 import logging
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime
 import time
 import random
-import utils
+from pathlib import Path
+
+import config
 
 logger = logging.getLogger(__name__)
 
-# NASA API base URL and endpoint
-NASA_API_BASE_URL = "https://api.nasa.gov/mars-photos/api/v1"
-NASA_API_KEY = os.getenv("NASA_API_KEY", "DEMO_KEY")
+NASA_API_KEY = config.NASA_API_KEY
 
 def get_mars_rover_photos(rover="curiosity", date=None):
     """
@@ -54,33 +53,36 @@ def get_mars_rover_photos(rover="curiosity", date=None):
     logger.warning("All API attempts failed. Checking local data.")
     return []
 
-def download_photo(photo_data, save_dir="data/nasa_images"):
+def download_photo(photo_data, save_dir=None):
     """
     Download a Mars Rover photo and save it to the specified directory.
-    
+
     Args:
         photo_data (dict): Photo data from NASA API
-        save_dir (str): Directory to save the photo
-        
+        save_dir: Directory to save the photo (defaults to config.NASA_IMAGES_DIR)
+
     Returns:
-        str: Path to the saved photo, or None if download failed
+        Path: Path to the saved photo, or None if download failed
     """
+    if save_dir is None:
+        save_dir = config.NASA_IMAGES_DIR
+    save_dir = Path(save_dir)
+    save_dir.mkdir(parents=True, exist_ok=True)
+
     img_url = photo_data.get('img_src')
     if not img_url:
         logger.warning("No image URL found in photo data")
         return None
-    
-    # Generate a unique filename
-    rover = photo_data.get('rover', {}).get('name', 'unknown')
-    camera = photo_data.get('camera', {}).get('name', 'unknown')
+
+    rover    = photo_data.get('rover', {}).get('name', 'unknown')
+    camera   = photo_data.get('camera', {}).get('name', 'unknown')
     photo_id = photo_data.get('id', random.randint(10000, 99999))
     date_str = datetime.now().strftime("%Y%m%d")
-    
+
     filename = f"{date_str}_{rover}_{camera}_{photo_id}.jpg"
-    filepath = os.path.join(save_dir, filename)
-    
-    # Check if file already exists
-    if os.path.exists(filepath):
+    filepath = save_dir / filename
+
+    if filepath.exists():
         logger.info(f"Photo already exists: {filepath}")
         return filepath
     
