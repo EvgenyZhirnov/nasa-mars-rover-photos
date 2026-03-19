@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анимация марсохода</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    
+    <div class="container">
+        <header class="page-header">
+            <h1><i class="fas fa-rocket mars-accent"></i> Марсоход <span class="mars-accent">Анимация</span></h1>
+            <p class="lead">Последняя анимация с миссии марсохода NASA</p>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-home"></i> Вернуться на главную
+            </a>
+        </header>
+        
+        <div class="row">
+            <div class="col-md-10 offset-md-1">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h2 class="h5 mb-0"><i class="fas fa-photo-film"></i> Анимация марсохода</h2>
+                        <a href="{{ url_for('get_animation') }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-download"></i> Скачать
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        {% if error %}
+                        <div class="alert alert-danger" role="alert">
+                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                        </div>
+                        {% else %}
+                        <div class="animation-container" id="animationContainer">
+                            <div class="text-center">
+                                <div class="spinner-border mars-accent" role="status">
+                                    <span class="visually-hidden">Загрузка анимации...</span>
+                                </div>
+                                <p class="mt-3">Загрузка анимации...</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h2 class="h5 mb-0"><i class="fas fa-info-circle"></i> Об этой анимации</h2>
+                    </div>
+                    <div class="card-body">
+                        <p>
+                            Эта анимация создана из фотографий марсохода NASA, собранных в течение дня.
+                            Новая анимация генерируется ежедневно в 16:00 по времени сервера.
+                        </p>
+                        <p>
+                            Изображения сделаны различными камерами марсохода во время исследования
+                            поверхности Марса, предоставляя ценные научные данные о геологии Марса,
+                            атмосфере и потенциальной возможности прошлой или настоящей жизни.
+                        </p>
+                        <p>
+                            <small class="text-muted">
+                                Источник изображений: NASA/JPL-Caltech
+                            </small>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="mt-5">
+        <div class="container">
+            <p>Приложение фотографий марсохода &copy; <span id="currentYear"></span></p>
+        </div>
+    </footer>
+    
+    <script>
+        // Set current year in footer
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+        
+        // Create star background
+        function createStars() {
+            const stars = document.getElementById('stars');
+            const numberOfStars = 100;
+            
+            for (let i = 0; i < numberOfStars; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                
+                // Random position
+                const left = Math.random() * 100;
+                const top = Math.random() * 100;
+                
+                // Random size
+                const size = Math.random() * 3;
+                
+                // Random animation delay
+                const delay = Math.random() * 5;
+                
+                star.style.left = `${left}%`;
+                star.style.top = `${top}%`;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.animationDelay = `${delay}s`;
+                
+                stars.appendChild(star);
+            }
+        }
+        
+        // Load and display the animation
+        function loadAnimation() {
+            {% if not error %}
+            fetch('/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.has_animation) {
+                        const container = document.getElementById('animationContainer');
+                        const timestamp = new Date().getTime(); // Cache-busting
+                        
+                        // Determine if we should use video or img tag based on file extension
+                        const isMP4 = data.animation_last_updated && !data.animation_last_updated.includes('.gif');
+                        
+                        if (isMP4) {
+                            container.innerHTML = `
+                                <video controls autoplay loop class="img-fluid">
+                                    <source src="/animation?t=${timestamp}" type="video/mp4">
+                                    Ваш браузер не поддерживает видео.
+                                </video>
+                                <p class="mt-3">
+                                    <small>Последнее обновление: ${data.animation_last_updated}</small>
+                                </p>
+                            `;
+                        } else {
+                            container.innerHTML = `
+                                <img src="/animation?t=${timestamp}" alt="Анимация марсохода" class="img-fluid">
+                                <p class="mt-3">
+                                    <small>Последнее обновление: ${data.animation_last_updated}</small>
+                                </p>
+                            `;
+                        }
+                    } else {
+                        const container = document.getElementById('animationContainer');
+                        container.innerHTML = `
+                            <div class="alert alert-warning" role="alert">
+                                <i class="fas fa-exclamation-triangle"></i> 
+                                Анимация еще не доступна. Первая анимация будет создана в 16:00.
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking animation:', error);
+                    const container = document.getElementById('animationContainer');
+                    container.innerHTML = `
+                        <div class="alert alert-danger" role="alert">
+                            <i class="fas fa-exclamation-circle"></i> 
+                            Ошибка загрузки анимации. Пожалуйста, попробуйте позже.
+                        </div>
+                    `;
+                });
+            {% endif %}
+        }
+        
+        // Initialize when document is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            createStars();
+            loadAnimation();
+        });
+    </script>
+</body>
+</html>
