@@ -227,6 +227,93 @@
                     </div>
                 </div>
 
+                <!-- ===== REVIEWS SECTION ===== -->
+                <div class="card mt-4" id="reviews">
+                    <div class="card-header">
+                        <h2 class="h5 mb-0">
+                            <i class="fas fa-comments mars-accent"></i>
+                            <span class="ru">Отзывы</span>
+                            <span class="en">Reviews</span>
+                            {% if reviews %}
+                            <span class="badge bg-secondary ms-2">{{ reviews|length }}</span>
+                            {% endif %}
+                        </h2>
+                    </div>
+                    <div class="card-body">
+
+                        <!-- Existing reviews -->
+                        {% if reviews %}
+                        <div class="reviews-list mb-4">
+                            {% for r in reviews %}
+                            <div class="review-item p-3 mb-3 rounded" style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <strong><i class="fas fa-user-astronaut me-1 text-secondary"></i>{{ r.author }}</strong>
+                                    <small class="text-muted">{{ r.created_at[:10] }}</small>
+                                </div>
+                                {% if r.rating %}
+                                <div class="mb-1">
+                                    {% for i in range(1, 6) %}
+                                    <i class="fas fa-star {% if i <= r.rating %}text-warning{% else %}text-secondary{% endif %}" style="font-size:0.85rem;"></i>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                <p class="mb-0">{{ r.text }}</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="text-muted mb-4">
+                            <i class="fas fa-satellite-dish me-1"></i>
+                            <span class="ru">Отзывов пока нет — станьте первым исследователем!</span>
+                            <span class="en">No reviews yet — be the first explorer!</span>
+                        </p>
+                        {% endif %}
+
+                        <!-- Add review form -->
+                        <div class="review-form-wrapper">
+                            <h6 class="mb-3">
+                                <i class="fas fa-pen me-1"></i>
+                                <span class="ru">Оставить отзыв</span>
+                                <span class="en">Leave a Review</span>
+                            </h6>
+                            <form method="POST" action="/reviews" id="reviewForm">
+                                <div class="mb-2">
+                                    <input type="text" name="author" class="form-control form-control-sm"
+                                           maxlength="80"
+                                           placeholder="Ваше имя / Your name">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small text-muted">
+                                        <span class="ru">Оценка</span>
+                                        <span class="en">Rating</span>
+                                    </label>
+                                    <div class="d-flex gap-1 align-items-center" id="starWidget">
+                                        {% for i in range(1, 6) %}
+                                        <i class="fas fa-star review-star" data-val="{{ i }}"
+                                           style="font-size:1.4rem; cursor:pointer; color:#495057; transition:color .15s;"></i>
+                                        {% endfor %}
+                                        <input type="hidden" name="rating" id="ratingInput">
+                                        <span class="ms-2 small text-muted" id="ratingLabel">
+                                            <span class="ru">не выбрано</span>
+                                            <span class="en">not selected</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <textarea name="text" class="form-control form-control-sm" rows="3"
+                                              required maxlength="2000"
+                                              placeholder="Ваш отзыв... / Your review..."></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-paper-plane me-1"></i>
+                                    <span class="ru">Отправить</span>
+                                    <span class="en">Submit</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -322,6 +409,32 @@
                     </small>
                 </div>`;
         }
+
+        // ── Star rating widget ──────────────────────────────────────────
+        (function() {
+            const stars   = document.querySelectorAll('#starWidget .review-star');
+            const input   = document.getElementById('ratingInput');
+            const labelEl = document.getElementById('ratingLabel');
+            const labels  = { ru: ['Ужасно','Плохо','Нормально','Хорошо','Отлично'],
+                               en: ['Terrible','Poor','OK','Good','Excellent'] };
+            let selected = 0;
+
+            function paint(n) {
+                stars.forEach((s, i) => s.style.color = i < n ? '#ffc107' : '#495057');
+            }
+
+            stars.forEach(s => {
+                s.addEventListener('mouseenter', () => paint(+s.dataset.val));
+                s.addEventListener('mouseleave', () => paint(selected));
+                s.addEventListener('click', () => {
+                    selected = +s.dataset.val;
+                    input.value = selected;
+                    paint(selected);
+                    const lang = document.body.getAttribute('data-lang') || 'ru';
+                    labelEl.textContent = labels[lang][selected - 1];
+                });
+            });
+        })();
 
         document.addEventListener('DOMContentLoaded', function() {
             const saved = localStorage.getItem('lang');
