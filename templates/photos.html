@@ -3,14 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Фотографии марсохода</title>
+    <title>Фотографии NASA</title>
     <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .photo-comment-panel {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 6px;
+        }
+        .comment-item {
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding: 6px 0;
+        }
+        .comment-item:last-of-type { border-bottom: none; }
+        .vis-badge { font-size: 0.75rem; }
+        .toggle-comments.active { border-color: #6f42c1; color: #6f42c1; }
+        .location-result { font-size: 0.8rem; margin-top: 5px; }
+    </style>
 </head>
 <body>
     <div class="stars" id="stars"></div>
-    
+
     <div class="container">
         <header class="page-header">
             <h1><i class="fas fa-rocket mars-accent"></i> Фотографии <span class="mars-accent">NASA</span></h1>
@@ -19,7 +36,7 @@
                 <i class="fas fa-home"></i> Вернуться на главную
             </a>
         </header>
-        
+
         <div class="row">
             <div class="col-md-12">
                 <div class="card">
@@ -32,12 +49,13 @@
                                 {% for photo in photos %}
                                 <div class="photo-container">
                                     <a href="{{ photo.path }}" target="_blank" class="photo-link">
-                                        <img src="{{ photo.path }}" alt="{{ photo.name }}" class="img-thumbnail photo-thumbnail">
+                                        <img src="{{ photo.path }}" alt="{{ photo.name }}"
+                                             class="img-thumbnail photo-thumbnail">
                                     </a>
                                     <div class="photo-info">
                                         <small class="text-muted">
                                             <i class="fas fa-calendar"></i> {{ photo.date }}<br>
-                                            <span class="text-truncate d-inline-block" style="max-width: 100%;">
+                                            <span class="text-truncate d-inline-block" style="max-width:100%;">
                                                 {% if photo.source %}
                                                 <span class="badge {% if photo.type == 'rover' %}bg-danger{% elif photo.type == 'apod' %}bg-primary{% elif photo.type == 'epic' %}bg-success{% else %}bg-secondary{% endif %}">
                                                     {{ photo.source }}
@@ -47,22 +65,38 @@
                                             </span>
                                         </small>
                                     </div>
+
+                                    <!-- EPIC: am-I-visible button -->
+                                    {% if photo.type == 'epic' %}
+                                    <button class="btn btn-outline-success btn-sm w-100 mt-1 check-vis-btn"
+                                            data-photo="{{ photo.name }}">
+                                        <i class="fas fa-map-marker-alt me-1"></i>Я на этом фото?
+                                    </button>
+                                    <div class="location-result" id="vis-{{ loop.index }}"></div>
+                                    {% endif %}
+
+                                    <!-- Comments toggle -->
+                                    <button class="btn btn-outline-secondary btn-sm w-100 mt-1 toggle-comments"
+                                            data-photo="{{ photo.name }}" data-idx="{{ loop.index }}">
+                                        <i class="fas fa-comment me-1"></i>Комментарии
+                                    </button>
+                                    <div class="photo-comment-panel" id="cmt-{{ loop.index }}" style="display:none;"></div>
                                 </div>
                                 {% endfor %}
                             </div>
                         {% else %}
                             <div class="alert alert-warning" role="alert">
-                                <i class="fas fa-exclamation-triangle"></i> 
+                                <i class="fas fa-exclamation-triangle"></i>
                                 Фотографии еще не загружены. Пожалуйста, проверьте позже.
                             </div>
                             <div class="text-center">
-                                <img src="/static/waiting-stars.svg" alt="Ожидание фотографий" 
-                                     class="img-fluid" style="max-height: 300px;">
+                                <img src="/static/waiting-stars.svg" alt="Ожидание фотографий"
+                                     class="img-fluid" style="max-height:300px;">
                             </div>
                         {% endif %}
                     </div>
                 </div>
-                
+
                 <div class="card mt-4">
                     <div class="card-header">
                         <h2 class="h5 mb-0"><i class="fas fa-info-circle"></i> О фотографиях</h2>
@@ -75,16 +109,9 @@
                                         <i class="fas fa-rocket"></i> Марсоход
                                     </div>
                                     <div class="card-body">
-                                        <p>
-                                            Марсоход Curiosity был запущен NASA 26 ноября 2011 года и успешно приземлился в кратере Гейла на Марсе 
-                                            6 августа 2012 года. Его миссия заключается в изучении марсианского климата и геологии, 
-                                            а также в поиске признаков жизни.
-                                        </p>
-                                        <p class="mb-0">
-                                            <small class="text-muted">
-                                                Источник изображений: NASA/JPL-Caltech
-                                            </small>
-                                        </p>
+                                        <p>Марсоход Curiosity был запущен NASA 26 ноября 2011 года и успешно приземлился в кратере Гейла
+                                        6 августа 2012 года. Его миссия — изучение марсианского климата, геологии и поиск признаков жизни.</p>
+                                        <p class="mb-0"><small class="text-muted">Источник: NASA/JPL-Caltech</small></p>
                                     </div>
                                 </div>
                             </div>
@@ -94,16 +121,9 @@
                                         <i class="fas fa-star"></i> Фото дня NASA (APOD)
                                     </div>
                                     <div class="card-body">
-                                        <p>
-                                            Astronomy Picture of the Day (APOD) - это сервис NASA, который каждый день публикует
-                                            фотографию космоса вместе с кратким объяснением, написанным астрономом. Этот проект
-                                            работает с 1995 года и предоставляет уникальные изображения космических объектов и явлений.
-                                        </p>
-                                        <p class="mb-0">
-                                            <small class="text-muted">
-                                                Источник изображений: NASA
-                                            </small>
-                                        </p>
+                                        <p>Astronomy Picture of the Day (APOD) — это сервис NASA, который каждый день публикует
+                                        фотографию космоса с кратким объяснением астронома. Проект работает с 1995 года.</p>
+                                        <p class="mb-0"><small class="text-muted">Источник: NASA</small></p>
                                     </div>
                                 </div>
                             </div>
@@ -113,16 +133,10 @@
                                         <i class="fas fa-globe"></i> EPIC (Снимки Земли)
                                     </div>
                                     <div class="card-body">
-                                        <p>
-                                            Earth Polychromatic Imaging Camera (EPIC) - это камера на борту спутника DSCOVR, 
-                                            которая делает регулярные снимки освещённой стороны Земли. Находясь на расстоянии
-                                            около 1,5 миллиона километров от Земли, DSCOVR предоставляет полные снимки нашей планеты.
-                                        </p>
-                                        <p class="mb-0">
-                                            <small class="text-muted">
-                                                Источник изображений: NASA/NOAA
-                                            </small>
-                                        </p>
+                                        <p>Earth Polychromatic Imaging Camera (EPIC) — камера на борту спутника DSCOVR,
+                                        который находится на расстоянии около 1,5 млн км от Земли. Нажмите «Я на этом фото?»
+                                        чтобы узнать, видна ли ваша точка на снимке!</p>
+                                        <p class="mb-0"><small class="text-muted">Источник: NASA/NOAA</small></p>
                                     </div>
                                 </div>
                             </div>
@@ -132,50 +146,205 @@
             </div>
         </div>
     </div>
-    
+
     <footer class="mt-5">
         <div class="container">
             <p>Приложение космических фотографий NASA &copy; <span id="currentYear"></span></p>
         </div>
     </footer>
-    
+
     <script>
-        // Set current year in footer
         document.getElementById('currentYear').textContent = new Date().getFullYear();
-        
-        // Create star background
-        function createStars() {
+
+        // Star background
+        (function createStars() {
             const stars = document.getElementById('stars');
-            const numberOfStars = 100;
-            
-            for (let i = 0; i < numberOfStars; i++) {
-                const star = document.createElement('div');
-                star.classList.add('star');
-                
-                // Random position
-                const left = Math.random() * 100;
-                const top = Math.random() * 100;
-                
-                // Random size
-                const size = Math.random() * 3;
-                
-                // Random animation delay
-                const delay = Math.random() * 5;
-                
-                star.style.left = `${left}%`;
-                star.style.top = `${top}%`;
-                star.style.width = `${size}px`;
-                star.style.height = `${size}px`;
-                star.style.animationDelay = `${delay}s`;
-                
-                stars.appendChild(star);
+            for (let i = 0; i < 100; i++) {
+                const s = document.createElement('div');
+                s.classList.add('star');
+                s.style.left   = `${Math.random() * 100}%`;
+                s.style.top    = `${Math.random() * 100}%`;
+                s.style.width  = `${Math.random() * 3}px`;
+                s.style.height = s.style.width;
+                s.style.animationDelay = `${Math.random() * 5}s`;
+                stars.appendChild(s);
             }
+        })();
+
+        // ── Comment panel helpers ──────────────────────────────────────────
+        function buildCommentPanel(idx, photoName, comments) {
+            const panel = document.getElementById(`cmt-${idx}`);
+            let html = '';
+
+            if (comments.length === 0) {
+                html += '<p class="text-muted small mb-2">Комментариев пока нет.</p>';
+            } else {
+                comments.forEach(c => {
+                    html += `<div class="comment-item">
+                        <div class="d-flex justify-content-between">
+                            <strong class="small"><i class="fas fa-user-circle me-1 text-secondary"></i>${escHtml(c.author)}</strong>
+                            <small class="text-muted">${c.created_at.slice(0,10)}</small>
+                        </div>
+                        <p class="mb-0 small">${escHtml(c.text)}</p>
+                    </div>`;
+                });
+            }
+
+            html += `<form class="comment-form mt-2" data-photo="${escHtml(photoName)}" data-idx="${idx}">
+                <div class="mb-1">
+                    <input type="text" class="form-control form-control-sm cmt-author"
+                           placeholder="Ваше имя" maxlength="80">
+                </div>
+                <div class="mb-1">
+                    <textarea class="form-control form-control-sm cmt-text" rows="2"
+                              placeholder="Написать комментарий..." maxlength="2000" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-paper-plane me-1"></i>Отправить
+                </button>
+            </form>`;
+
+            panel.innerHTML = html;
+
+            // Bind form submit
+            panel.querySelector('.comment-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitComment(this, idx, photoName);
+            });
         }
-        
-        // Initialize when document is ready
-        document.addEventListener('DOMContentLoaded', function() {
-            createStars();
+
+        function submitComment(form, idx, photoName) {
+            const author = form.querySelector('.cmt-author').value.trim() || 'Аноним';
+            const text   = form.querySelector('.cmt-text').value.trim();
+            if (!text) return;
+
+            const btn = form.querySelector('button[type="submit"]');
+            btn.disabled = true;
+
+            fetch('/api/photo-comment', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ item_id: photoName, author, text })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    // Prepend new comment above form
+                    const newDiv = document.createElement('div');
+                    newDiv.className = 'comment-item';
+                    newDiv.innerHTML = `<div class="d-flex justify-content-between">
+                        <strong class="small"><i class="fas fa-user-circle me-1 text-secondary"></i>${escHtml(data.author)}</strong>
+                        <small class="text-muted">${data.created_at}</small>
+                    </div>
+                    <p class="mb-0 small">${escHtml(data.text)}</p>`;
+
+                    const panel = document.getElementById(`cmt-${idx}`);
+                    panel.insertBefore(newDiv, form);
+
+                    // Remove "no comments" placeholder
+                    const empty = panel.querySelector('.text-muted.small.mb-2');
+                    if (empty) empty.remove();
+
+                    form.querySelector('.cmt-text').value = '';
+                }
+                btn.disabled = false;
+            })
+            .catch(() => { btn.disabled = false; });
+        }
+
+        // Toggle comment panel
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.toggle-comments');
+            if (!btn) return;
+
+            const idx       = btn.dataset.idx;
+            const photoName = btn.dataset.photo;
+            const panel     = document.getElementById(`cmt-${idx}`);
+
+            if (panel.style.display === 'none') {
+                // Load comments first time
+                if (!panel.dataset.loaded) {
+                    fetch(`/api/comments?page_type=photo&item_id=${encodeURIComponent(photoName)}`)
+                        .then(r => r.json())
+                        .then(comments => {
+                            buildCommentPanel(idx, photoName, comments);
+                            panel.dataset.loaded = '1';
+                        });
+                }
+                panel.style.display = 'block';
+                btn.classList.add('active');
+            } else {
+                panel.style.display = 'none';
+                btn.classList.remove('active');
+            }
         });
+
+        // ── EPIC "Am I in this photo?" ────────────────────────────────────
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.check-vis-btn');
+            if (!btn) return;
+
+            const photoName = btn.dataset.photo;
+            // Find result div: it follows the button in DOM
+            const resultEl = btn.nextElementSibling;
+
+            btn.disabled = true;
+            resultEl.innerHTML = '<span class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Определяю геолокацию...</span>';
+
+            if (!navigator.geolocation) {
+                resultEl.innerHTML = '<span class="text-warning">Геолокация не поддерживается браузером.</span>';
+                btn.disabled = false;
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    const lat = pos.coords.latitude;
+                    const lon = pos.coords.longitude;
+                    fetch(`/api/epic/visibility?lat=${lat}&lon=${lon}`)
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.error) {
+                                resultEl.innerHTML = `<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>${data.error}</span>`;
+                            } else if (data.visible) {
+                                resultEl.innerHTML = `<span class="text-success">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    <strong>Да! Вы видны на этом снимке</strong> — ваша точка находится
+                                    в ${data.angle_from_center}° от центра Земли на фото
+                                    (снято ${data.image_date.slice(0,10)}).
+                                </span>`;
+                            } else {
+                                resultEl.innerHTML = `<span class="text-secondary">
+                                    <i class="fas fa-times-circle me-1"></i>
+                                    Вас не видно на снимке — вы в ${data.angle_from_center}° от
+                                    видимой части Земли (снято ${data.image_date.slice(0,10)}).
+                                </span>`;
+                            }
+                            btn.disabled = false;
+                        })
+                        .catch(() => {
+                            resultEl.innerHTML = '<span class="text-danger">Ошибка при проверке.</span>';
+                            btn.disabled = false;
+                        });
+                },
+                err => {
+                    const msgs = {
+                        1: 'Доступ к геолокации запрещён.',
+                        2: 'Не удалось определить местоположение.',
+                        3: 'Превышено время ожидания геолокации.',
+                    };
+                    resultEl.innerHTML = `<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>${msgs[err.code] || 'Ошибка геолокации.'}</span>`;
+                    btn.disabled = false;
+                },
+                { timeout: 10000 }
+            );
+        });
+
+        function escHtml(s) {
+            return String(s)
+                .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
     </script>
 </body>
 </html>
