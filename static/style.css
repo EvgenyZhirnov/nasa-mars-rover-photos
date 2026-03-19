@@ -1,0 +1,194 @@
+/* Custom styles for Mars Rover Photos application */
+
+/* Override body styles for dark theme */
+body {
+    background-color: var(--bs-dark);
+    color: var(--bs-light);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Container styles */
+.container {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+}
+
+/* Page header styles */
+.page-header {
+    margin-bottom: 2rem;
+    text-align: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--bs-secondary);
+}
+
+/* Mars-themed accent color */
+.mars-accent {
+    color: #ff5a00;
+}
+
+/* Card styles */
+.card {
+    margin-bottom: 1.5rem;
+    background-color: var(--bs-dark);
+    border: 1px solid var(--bs-secondary);
+    border-radius: 0.5rem;
+}
+
+.card-header {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid var(--bs-secondary);
+}
+
+/* Animation container */
+.animation-container {
+    margin: 2rem auto;
+    max-width: 100%;
+    text-align: center;
+}
+
+.animation-container video,
+.animation-container img {
+    max-width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid var(--bs-secondary);
+}
+
+/* Status indicators */
+.status-indicator {
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.status-indicator .indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+}
+
+.status-indicator .active {
+    background-color: var(--bs-success);
+}
+
+.status-indicator .inactive {
+    background-color: var(--bs-danger);
+}
+
+/* Footer styles */
+footer {
+    margin-top: auto;
+    padding: 1rem 0;
+    text-align: center;
+    font-size: 0.9rem;
+    border-top: 1px solid var(--bs-secondary);
+}
+
+/* Star background animation */
+.stars {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.star {
+    position: absolute;
+    background-color: #fff;
+    border-radius: 50%;
+    opacity: 0.5;
+    animation: twinkle 5s infinite ease-in-out;
+}
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 0.7; }
+}
+
+/* Photo grid styles */
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.photo-container {
+    border: 1px solid var(--bs-secondary);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    transition: transform 0.2s;
+}
+
+.photo-container:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.photo-thumbnail {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 0;
+    border: none;
+}
+
+.photo-info {
+    padding: 0.5rem;
+    border-top: 1px solid var(--bs-secondary);
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* APOD styles */
+.apod-container {
+    margin: 2rem auto;
+    max-width: 100%;
+    text-align: center;
+}
+
+.apod-container img {
+    max-width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid var(--bs-secondary);
+}
+
+.apod-title {
+    margin-top: 1rem;
+    color: var(--bs-light);
+    font-weight: bold;
+}
+
+.apod-date {
+    font-size: 0.9rem;
+    color: var(--bs-secondary);
+    margin-bottom: 1rem;
+}
+
+.apod-explanation {
+    text-align: left;
+    margin-top: 1rem;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .container {
+        margin-top: 1rem;
+    }
+    
+    .page-header {
+        margin-bottom: 1rem;
+    }
+    
+    .photo-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+    
+    .photo-thumbnail {
+        height: 150px;
+    }
+}
