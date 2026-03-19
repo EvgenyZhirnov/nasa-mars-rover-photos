@@ -125,6 +125,27 @@ def download_epic_photo(photo_data, save_dir="data/nasa_epic"):
         logger.error(f"Error in download_epic_photo: {e}")
         return None
 
+def save_centroid_metadata(photos, save_dir):
+    """
+    Persist the centroid_coordinates of the first EPIC photo in the batch so
+    the web server can look up the visible hemisphere without making API calls.
+    """
+    if not photos:
+        return
+    first = photos[0]
+    centroid = first.get("centroid_coordinates", {})
+    date_str = first.get("date", "")
+    meta = {
+        "lat":  centroid.get("lat", 0),
+        "lon":  centroid.get("lon", 0),
+        "date": date_str,
+    }
+    meta_path = os.path.join(save_dir, "centroid.json")
+    with open(meta_path, "w") as f:
+        json.dump(meta, f)
+    logger.info(f"Saved EPIC centroid metadata: lat={meta['lat']}, lon={meta['lon']}")
+
+
 def download_all_epic_photos(date=None, save_dir="data/nasa_epic"):
     """
     Download all EPIC photos for a specific date and save them to the specified directory.
@@ -145,6 +166,9 @@ def download_all_epic_photos(date=None, save_dir="data/nasa_epic"):
     if not photos:
         logger.warning("No EPIC photos available to download")
         return 0, []
+    
+    # Save centroid metadata for geolocation feature
+    save_centroid_metadata(photos, save_dir)
     
     # Download each photo
     downloaded_count = 0
