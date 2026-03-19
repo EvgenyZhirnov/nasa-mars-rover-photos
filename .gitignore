@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env
+
+# Environment variables / secrets
+.env*
+secrets.txt
+
+# Data directories (downloaded images and animations)
+data/
+
+# Cache
+.cache/
+.pythonlibs/
+
+# Replit specific
+.replit
+replit.nix
+.breakpoints
+.upm/
+.config/
+.local/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
