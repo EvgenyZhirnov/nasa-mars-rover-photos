@@ -1,105 +1,88 @@
 """
-Module for creating animations from Mars Rover photos.
+Creates MP4 (or GIF fallback) animations from saved Mars Rover photos.
 """
-import os
 import logging
 import glob
-from datetime import datetime
-import imageio
 import re
+from datetime import datetime
+from pathlib import Path
+import imageio
+
+import config
 
 logger = logging.getLogger(__name__)
 
-def create_animation(source_dir="data/nasa_images", output_file="data/nasa_animation.mp4", fps=2):
+
+def create_animation(
+    source_dir: Path = config.NASA_IMAGES_DIR,
+    output_file: Path = config.ANIMATION_MP4,
+    fps: int = 2,
+):
     """
-    Create an animation from all images saved on the current day.
-    
-    Args:
-        source_dir (str): Directory containing the source images
-        output_file (str): Path to save the output animation
-        fps (int): Frames per second for the animation
-        
-    Returns:
-        str: Path to the created animation file, or None if creation failed
+    Build an animation from today's (or most recent) rover images.
+
+    Returns the path of the created file, or None on failure.
     """
-    try:
-        # Get today's date in YYYYMMDD format
-        today = datetime.now().strftime("%Y%m%d")
-        
-        # Find all images from today
-        pattern = os.path.join(source_dir, f"{today}_*.jpg")
-        image_files = sorted(glob.glob(pattern))
-        
-        if not image_files:
-            logger.warning(f"No images found for today ({today}) in {source_dir}")
-            
-            # As a fallback, try to get the most recent day's images
-            all_images = glob.glob(os.path.join(source_dir, "*.jpg"))
-            if not all_images:
-                logger.error("No images found at all")
-                return None
-                
-            # Extract dates from filenames and find the most recent
-            dates = set()
-            for img in all_images:
-                match = re.search(r"(\d{8})_", os.path.basename(img))
-                if match:
-                    dates.add(match.group(1))
-            
-            if not dates:
-                logger.error("Could not extract dates from filenames")
-                return None
-                
-            most_recent = sorted(dates, reverse=True)[0]
-            logger.info(f"Using images from {most_recent} instead")
-            
-            pattern = os.path.join(source_dir, f"{most_recent}_*.jpg")
-            image_files = sorted(glob.glob(pattern))
-            
-            if not image_files:
-                logger.error(f"No images found for {most_recent} either")
-                return None
-        
-        logger.info(f"Creating animation from {len(image_files)} images")
-        
-        # Create animation
-        output_dir = os.path.dirname(output_file)
-        os.makedirs(output_dir, exist_ok=True)
-        
-        # Read images
-        images = []
-        for img_path in image_files:
-            try:
-                img = imageio.imread(img_path)
-                images.append(img)
-            except Exception as e:
-                logger.error(f"Error reading image {img_path}: {e}")
-        
-        if not images:
-            logger.error("No valid images could be read")
+    source_dir  = Path(source_dir)
+    output_file = Path(output_file)
+
+    today   = datetime.now().strftime("%Y%m%d")
+    pattern = str(source_dir / f"{today}_*.jpg")
+    image_files = sorted(glob.glob(pattern))
+
+    if not image_files:
+        logger.warning(f"No images for today ({today}); looking for most recent batch")
+        all_images = glob.glob(str(source_dir / "*.jpg"))
+        if not all_images:
+            logger.error("No rover images available at all")
             return None
-            
-        # Create MP4 animation
+
+        dates = set()
+        for img in all_images:
+            m = re.search(r"(\d{8})_", Path(img).name)
+            if m:
+                dates.add(m.group(1))
+
+        if not dates:
+            logger.error("Could not extract dates from filenames")
+            return None
+
+        most_recent = sorted(dates, reverse=True)[0]
+        image_files = sorted(glob.glob(str(source_dir / f"{most_recent}_*.jpg")))
+        logger.info(f"Using {len(image_files)} images from {most_recent}")
+
+    if not image_files:
+        logger.error("Still no images found after fallback")
+        return None
+
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+
+    images = []
+    for path in image_files:
         try:
-            writer = imageio.get_writer(output_file, fps=fps)
-            for img in images:
-                writer.append_data(img)
-            writer.close()
-            logger.info(f"Successfully created animation at {output_file}")
-            return output_file
+            images.append(imageio.imread(path))
         except Exception as e:
-            logger.error(f"Error creating MP4 animation: {e}")
-            
-            # Try creating GIF as a fallback
-            try:
-                gif_output = output_file.replace('.mp4', '.gif')
-                imageio.mimsave(gif_output, images, fps=fps)
-                logger.info(f"Successfully created GIF animation at {gif_output}")
-                return gif_output
-            except Exception as e2:
-                logger.error(f"Error creating GIF animation: {e2}")
-                return None
-                
+            logger.error(f"Skipping unreadable image {path}: {e}")
+
+    if not images:
+        logger.error("No valid images could be read")
+        return None
+
+    try:
+        writer = imageio.get_writer(str(output_file), fps=fps)
+        for img in images:
+            writer.append_data(img)
+        writer.close()
+        logger.info(f"Animation saved: {output_file} ({len(images)} frames)")
+        return output_file
     except Exception as e:
-        logger.error(f"Unexpected error in create_animation: {e}")
+        logger.error(f"MP4 creation failed: {e} — trying GIF fallback")
+
+    gif_path = output_file.with_suffix('.gif')
+    try:
+        imageio.mimsave(str(gif_path), images, fps=fps)
+        logger.info(f"GIF animation saved: {gif_path}")
+        return gif_path
+    except Exception as e2:
+        logger.error(f"GIF creation also failed: {e2}")
         return None
