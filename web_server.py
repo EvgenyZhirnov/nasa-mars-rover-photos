@@ -3,13 +3,16 @@ Flask web server — defines the app and routes only.
 No side effects on import: no scheduler start, no API calls, no downloads.
 """
 import os
+import json
+import math
 import logging
-from flask import Flask, render_template, send_file, jsonify, abort
+from flask import Flask, render_template, send_file, jsonify, abort, request, redirect, url_for
 from datetime import datetime
 
 import config
 import nasa_apod
 import nasa_epic
+import comments as comments_db
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +44,8 @@ def index():
             except Exception as e:
                 logger.error(f"Error getting APOD data: {e}")
 
-    return render_template('index.html', apod=apod_info)
+    reviews = comments_db.get_comments('review')
+    return render_template('index.html', apod=apod_info, reviews=reviews)
 
 
 @app.route('/animation')
@@ -175,6 +179,77 @@ def get_apod_data():
     except Exception as e:
         logger.error(f"Error getting APOD data: {e}")
         return jsonify({"error": "Could not fetch APOD data"}), 500
+
+
+@app.route('/reviews', methods=['POST'])
+def add_review():
+    author = request.form.get('author', '').strip() or 'Аноним'
+    text   = request.form.get('text', '').strip()
+    rating = request.form.get('rating')
+    if text:
+        rating_int = int(rating) if rating and rating.isdigit() else None
+        comments_db.add_comment('review', None, author, text, rating_int)
+    return redirect(url_for('index') + '#reviews')
+
+
+@app.route('/api/comments')
+def api_get_comments():
+    page_type = request.args.get('page_type', 'photo')
+    item_id   = request.args.get('item_id')
+    return jsonify(comments_db.get_comments(page_type, item_id))
+
+
+@app.route('/api/photo-comment', methods=['POST'])
+def api_add_photo_comment():
+    data    = request.get_json(silent=True) or {}
+    item_id = data.get('item_id', '').strip()
+    author  = data.get('author', '').strip() or 'Аноним'
+    text    = data.get('text', '').strip()
+    if not text or not item_id:
+        return jsonify({'error': 'text and item_id required'}), 400
+    new_id = comments_db.add_comment('photo', item_id, author, text)
+    return jsonify({'id': new_id, 'ok': True, 'author': author,
+                    'text': text, 'created_at': datetime.now().strftime('%Y-%m-%d %H:%M')})
+
+
+@app.route('/api/epic/visibility')
+def api_epic_visibility():
+    try:
+        lat = float(request.args.get('lat'))
+        lon = float(request.args.get('lon'))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'lat and lon required as numbers'}), 400
+
+    centroid_file = config.NASA_EPIC_DIR / 'centroid.json'
+    if not centroid_file.exists():
+        return jsonify({'error': 'No EPIC centroid data available yet'}), 404
+
+    try:
+        with open(centroid_file) as f:
+            centroid = json.load(f)
+    except Exception:
+        return jsonify({'error': 'Could not read centroid data'}), 500
+
+    clat = centroid.get('lat', 0)
+    clon = centroid.get('lon', 0)
+
+    lat1 = math.radians(lat)
+    lon1 = math.radians(lon)
+    lat2 = math.radians(clat)
+    lon2 = math.radians(clon)
+    dot  = (math.sin(lat1) * math.sin(lat2) +
+            math.cos(lat1) * math.cos(lat2) * math.cos(lon1 - lon2))
+
+    visible = dot > 0
+    angle   = math.degrees(math.acos(max(-1.0, min(1.0, dot))))
+
+    return jsonify({
+        'visible':            visible,
+        'angle_from_center':  round(angle, 1),
+        'centroid_lat':       clat,
+        'centroid_lon':       clon,
+        'image_date':         centroid.get('date', 'unknown'),
+    })
 
 
 @app.errorhandler(404)
