@@ -22,7 +22,7 @@ TELEGRAM_CHAT_ID   = os.getenv("TELEGRAM_CHAT_ID")
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", 5000))
 
-FETCH_INTERVAL_SECONDS = 2.4 * 60
+FETCH_INTERVAL_SECONDS = 5 * 60   # base: every 5 minutes; circuit breaker backs off further
 APOD_UPDATE_TIME       = "00:30"
 EPIC_UPDATE_TIME       = "01:00"
 ANIMATION_CREATE_TIME  = "16:00"
