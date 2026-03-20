@@ -392,18 +392,43 @@
 
         function updateSystemStatus(data, lang) {
             const ru = lang === 'ru';
+            const marsOk = data.mars_api_failures === 0;
+            const marsBreaker = data.mars_api_retry_at;
+
+            let marsLine = '';
+            if (marsBreaker) {
+                marsLine = `<div class="status-indicator">
+                    <div class="indicator inactive"></div>
+                    <span>${ru ? 'Mars API: недоступен, повтор в' : 'Mars API: unavailable, retry at'} ${marsBreaker}</span>
+                </div>`;
+            } else if (data.mars_api_failures > 0) {
+                marsLine = `<div class="status-indicator">
+                    <div class="indicator" style="background:#ffc107"></div>
+                    <span>${ru ? 'Mars API: ошибок подряд' : 'Mars API: consecutive failures'}: ${data.mars_api_failures}</span>
+                </div>`;
+            } else {
+                marsLine = `<div class="status-indicator">
+                    <div class="indicator active"></div>
+                    <span>Mars API: ${ru ? 'доступен' : 'available'}</span>
+                </div>`;
+            }
+
             document.getElementById('systemStatus').innerHTML = `
                 <div class="status-indicator">
                     <div class="indicator ${data.status === 'operational' ? 'active' : 'inactive'}"></div>
                     <span>${ru ? 'Статус системы' : 'System status'}: ${data.status === 'operational' ? (ru ? 'Работает' : 'Operational') : (ru ? 'Ошибка' : 'Error')}</span>
                 </div>
+                ${marsLine}
                 <div class="status-indicator">
                     <div class="indicator ${data.has_animation ? 'active' : 'inactive'}"></div>
                     <span>${ru ? 'Статус анимации' : 'Animation'}: ${data.has_animation ? (ru ? 'Доступна' : 'Available') : (ru ? 'Ещё не создана' : 'Not yet generated')}</span>
                 </div>
                 <div class="mt-3">
                     <small>
-                        <i class="fas fa-images"></i> ${ru ? 'Собрано изображений' : 'Images collected'}: ${data.image_count}<br>
+                        <i class="fas fa-images"></i> ${ru ? 'Собрано изображений' : 'Images collected'}: ${data.image_count}
+                        (${ru ? 'Марс' : 'Mars'}: ${data.rover_image_count},
+                         APOD: ${data.apod_image_count},
+                         EPIC: ${data.epic_image_count})<br>
                         <i class="fas fa-clock"></i> ${ru ? 'Время сервера' : 'Server time'}: ${data.current_time}<br>
                         ${data.animation_last_updated ? `<i class="fas fa-history"></i> ${ru ? 'Анимация обновлена' : 'Animation updated'}: ${data.animation_last_updated}` : ''}
                     </small>
