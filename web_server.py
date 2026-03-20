@@ -91,15 +91,25 @@ def status():
     apod_count  = count_images(config.NASA_APOD_DIR)
     epic_count  = count_images(config.NASA_EPIC_DIR)
 
+    import nasa_api as _nasa_api
+    import time as _time
+    breaker_active = bool(_nasa_api._backoff_until and _time.time() < _nasa_api._backoff_until)
+    breaker_retry  = (
+        datetime.fromtimestamp(_nasa_api._backoff_until).strftime('%H:%M:%S')
+        if breaker_active else None
+    )
+
     return jsonify({
-        "status":               "operational",
-        "has_animation":        has_animation,
+        "status":                 "operational",
+        "has_animation":          has_animation,
         "animation_last_updated": animation_time,
-        "image_count":          rover_count + apod_count + epic_count,
-        "rover_image_count":    rover_count,
-        "apod_image_count":     apod_count,
-        "epic_image_count":     epic_count,
-        "current_time":         datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        "image_count":            rover_count + apod_count + epic_count,
+        "rover_image_count":      rover_count,
+        "apod_image_count":       apod_count,
+        "epic_image_count":       epic_count,
+        "current_time":           datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        "mars_api_failures":      _nasa_api._consecutive_failures,
+        "mars_api_retry_at":      breaker_retry,
     })
 
 
