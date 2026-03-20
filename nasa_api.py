@@ -14,6 +14,35 @@ logger = logging.getLogger(__name__)
 
 NASA_API_KEY = config.NASA_API_KEY
 
+# ── Circuit breaker state ────────────────────────────────────────────────────
+_consecutive_failures = 0
+_backoff_until        = 0.0   # unix timestamp; 0 means "no backoff"
+_MAX_BACKOFF_SECONDS  = 60 * 60  # cap at 1 hour
+
+def _record_failure():
+    global _consecutive_failures, _backoff_until
+    _consecutive_failures += 1
+    wait = min(300 * (2 ** (_consecutive_failures - 1)), _MAX_BACKOFF_SECONDS)
+    _backoff_until = time.time() + wait
+    logger.warning(
+        f"Mars API consecutive failures: {_consecutive_failures}. "
+        f"Circuit breaker: next retry in {wait // 60} min"
+    )
+
+def _record_success():
+    global _consecutive_failures, _backoff_until
+    _consecutive_failures = 0
+    _backoff_until        = 0.0
+
+def _circuit_open() -> bool:
+    """Return True when the circuit breaker is blocking requests."""
+    if _backoff_until and time.time() < _backoff_until:
+        remaining = int(_backoff_until - time.time())
+        logger.info(f"Circuit breaker open — skipping Mars API call ({remaining}s remaining)")
+        return True
+    return False
+# ────────────────────────────────────────────────────────────────────────────
+
 def get_mars_rover_photos(rover="curiosity", date=None):
     """
     Fetch Mars Rover photos from NASA API.
@@ -35,21 +64,30 @@ def get_mars_rover_photos(rover="curiosity", date=None):
     for url, params in attempts:
         try:
             logger.info(f"Attempting NASA API: {url}")
-            # Ensure the params are passed as a dict, and requests handles the encoding
             response = requests.get(url, params=params, timeout=25)
-            
+
             if response.status_code == 200:
-                data = response.json()
+                data   = response.json()
                 photos = data.get('latest_photos', data.get('photos', []))
                 if photos:
                     logger.info(f"Successfully fetched {len(photos)} photos from {url}")
                     return photos
-            
-            logger.warning(f"Endpoint {url} returned {response.status_code}. Response: {response.text[:200]}")
+
+            elif response.status_code == 429:
+                retry_after = int(response.headers.get('Retry-After', 3600))
+                logger.warning(f"Rate limit (429) from {url}. Backing off {retry_after}s.")
+                # Directly set the breaker so the caller backs off
+                global _backoff_until
+                _backoff_until = time.time() + retry_after
+                return []
+
+            else:
+                logger.warning(f"Endpoint {url} returned {response.status_code}. "
+                               f"Response: {response.text[:150]}")
+
         except Exception as e:
             logger.error(f"Request to {url} failed: {e}")
-            
-    # Fallback: if even NASA is down, we check if we have ANY images locally to show
+
     logger.warning("All API attempts failed. Checking local data.")
     return []
 
@@ -107,16 +145,19 @@ def download_photo(photo_data, save_dir=None):
 def fetch_and_save_photos():
     """
     Fetch new Mars Rover photos and save them to the data directory.
-    
-    Returns:
-        int: Number of new photos saved
+    Returns the number of new photos saved.
     """
-    # Try getting latest photos directly
+    if _circuit_open():
+        return 0
+
     photos = get_mars_rover_photos()
-    
+
     if not photos:
         logger.warning("No photos available from latest_photos or specific dates")
+        _record_failure()
         return 0
+
+    _record_success()
     
     # Randomly select a sample of photos (max 5) to avoid too many downloads
     sample_size = min(5, len(photos))
