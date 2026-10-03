@@ -6,7 +6,7 @@
 
 ## Возможности
 
-- **Марсоходы** — фотографии с Curiosity, Opportunity и Spirit (каждые 2.4 минуты)
+- **Марсоходы** — фотографии с Curiosity с резервным запросом Perseverance (каждые 5 минут, с паузой при ошибках)
 - **APOD** — Astronomy Picture of the Day, ежедневное обновление
 - **EPIC** — снимки Земли с аппарата DSCOVR, ежедневное обновление
 - **Анимации** — автоматическая генерация MP4 из фотографий марсоходов каждый день в 16:00
@@ -74,7 +74,7 @@ export NASA_API_KEY=your_key
 export SESSION_SECRET=random_string
 
 mkdir -p data/nasa_images data/nasa_apod data/nasa_epic
-gunicorn --bind 0.0.0.0:5000 main:app
+gunicorn --bind 127.0.0.1:5000 --workers 1 --timeout 120 main:app
 ```
 
 ## Полезные команды Docker
@@ -95,7 +95,7 @@ Automatic aggregator and viewer for NASA imagery. Collects photos from Mars rove
 
 ## Features
 
-- **Mars Rovers** — photos from Curiosity, Opportunity and Spirit (every 2.4 minutes)
+- **Mars Rovers** — photos from Curiosity with Perseverance fallback (every 5 minutes, with backoff on errors)
 - **APOD** — Astronomy Picture of the Day, updated daily
 - **EPIC** — Earth imagery from the DSCOVR spacecraft, updated daily
 - **Animations** — automatic daily MP4 generation from rover photos at 16:00
@@ -134,7 +134,7 @@ export NASA_API_KEY=your_key
 export SESSION_SECRET=random_string
 
 mkdir -p data/nasa_images data/nasa_apod data/nasa_epic
-gunicorn --bind 0.0.0.0:5000 main:app
+gunicorn --bind 127.0.0.1:5000 --workers 1 --timeout 120 main:app
 ```
 
 ## Useful Docker Commands
@@ -144,3 +144,22 @@ docker compose logs -f       # view logs
 docker compose restart       # restart
 docker compose down          # stop
 ```
+
+## VPS: запуск и проверка
+
+Контейнер слушает только `127.0.0.1:5000`. Для доступа с компьютера используйте
+SSH-туннель: `ssh -L 5000:127.0.0.1:5000 USER@SERVER`, затем откройте
+`http://localhost:5000`. Не публикуйте порт на всех интерфейсах для закрытого стенда.
+
+Хранилище и SQLite готовятся до запуска HTTP; синхронизация NASA и запуск
+планировщика выполняются в фоне. Используйте ровно один worker, без `--preload`:
+планировщик находится внутри процесса приложения. `/healthz` проверяет HTTP,
+а `/status` показывает содержимое локального хранилища и ошибки Mars API.
+Готовность HTTP не гарантирует доступность NASA или наличие новых фотографий.
+
+APOD и его описание сохраняются вместе. Главная страница и `/apod/data` читают
+локальный кэш; при первой загрузке он может быть пустым, после сбоя остаётся
+последняя успешная запись. Изображения из прежней версии сохраняются в галерее;
+карточка APOD появится после первой успешной синхронизации метаданных.
+
+Проверки без запросов к NASA: `python -m unittest discover -s tests -v`.

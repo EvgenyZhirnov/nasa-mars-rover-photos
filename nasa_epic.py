@@ -112,7 +112,7 @@ def download_epic_photo(photo_data, save_dir="data/nasa_epic"):
             return file_path
         
         # Download the image
-        response = requests.get(url)
+        response = requests.get(url, timeout=(5, 30))
         if response.status_code == 200:
             with open(file_path, 'wb') as f:
                 f.write(response.content)

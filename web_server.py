@@ -20,29 +20,14 @@ app = Flask(__name__)
 app.secret_key = config.SESSION_SECRET or "change-me-set-SESSION_SECRET-env-var"
 
 
+@app.route('/healthz')
+def healthz():
+    return jsonify({'status': 'ok'})
+
+
 @app.route('/')
 def index():
-    apod_info = None
-    apod_dir = config.NASA_APOD_DIR
-
-    if apod_dir.exists() and any(apod_dir.iterdir()):
-        apod_files = [f for f in apod_dir.iterdir() if f.is_file()]
-        if apod_files:
-            latest = max(apod_files, key=lambda f: f.stat().st_mtime)
-            try:
-                apod_data = nasa_apod.get_apod()
-                if apod_data:
-                    apod_info = {
-                        'title':       apod_data.get('title', 'NASA APOD'),
-                        'date':        apod_data.get('date', datetime.now().strftime('%Y-%m-%d')),
-                        'explanation': apod_data.get('explanation', ''),
-                        'file_path':   f"/apod/image/{latest.name}",
-                        'media_type':  apod_data.get('media_type', 'image'),
-                        'url':         apod_data.get('url', ''),
-                        'copyright':   apod_data.get('copyright', 'NASA'),
-                    }
-            except Exception as e:
-                logger.error(f"Error getting APOD data: {e}")
+    apod_info = nasa_apod.get_cached_apod()
 
     reviews = comments_db.get_comments('review')
     return render_template('index.html', apod=apod_info, reviews=reviews)
@@ -185,7 +170,7 @@ def get_epic_data():
 @app.route('/apod/data')
 def get_apod_data():
     try:
-        return jsonify(nasa_apod.get_apod())
+        return jsonify(nasa_apod.get_cached_apod())
     except Exception as e:
         logger.error(f"Error getting APOD data: {e}")
         return jsonify({"error": "Could not fetch APOD data"}), 500

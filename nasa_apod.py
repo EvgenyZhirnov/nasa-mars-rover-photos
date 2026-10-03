@@ -2,6 +2,11 @@
 Module for interacting with NASA's Astronomy Picture of the Day (APOD) API.
 """
 import os
+import json
+import re
+from pathlib import Path
+from urllib.parse import urlsplit
+import config
 import logging
 import requests
 from datetime import datetime
@@ -38,7 +43,31 @@ def get_apod():
         logger.error(f"Error fetching APOD: {e}")
         return None
 
-def download_apod(save_dir="data/nasa_apod"):
+def get_cached_apod(save_dir=None):
+    directory = Path(save_dir) if save_dir is not None else config.NASA_APOD_DIR
+    try:
+        data = json.loads((directory / "metadata.json").read_text())
+        if not isinstance(data, dict):
+            return None
+        if data.get("media_type") == "image":
+            filename = data.get("local_filename", "")
+            if not filename or Path(filename).name != filename or not (directory / filename).is_file():
+                return None
+            data["file_path"] = f"/apod/image/{filename}"
+        return data
+    except (OSError, ValueError, TypeError):
+        return None
+
+
+def _cache_apod(data, directory, filename=None):
+    payload = dict(data)
+    payload["local_filename"] = filename
+    temporary = directory / "metadata.json.tmp"
+    temporary.write_text(json.dumps(payload), encoding="utf-8")
+    temporary.replace(directory / "metadata.json")
+
+
+def download_apod(save_dir=None):
     """
     Download the Astronomy Picture of the Day and save it to the specified directory.
     
@@ -48,6 +77,8 @@ def download_apod(save_dir="data/nasa_apod"):
     Returns:
         tuple: (path to the saved photo, apod data) or (None, None) if download failed
     """
+    save_dir = Path(save_dir) if save_dir is not None else config.NASA_APOD_DIR
+    save_dir.mkdir(parents=True, exist_ok=True)
     apod_data = get_apod()
     
     if not apod_data:
@@ -57,6 +88,7 @@ def download_apod(save_dir="data/nasa_apod"):
     # Check if the APOD is a video
     if apod_data.get('media_type') != 'image':
         logger.info(f"APOD is not an image (media_type: {apod_data.get('media_type')})")
+        _cache_apod(apod_data, save_dir)
         return None, apod_data
     
     img_url = apod_data.get('url')
@@ -68,12 +100,12 @@ def download_apod(save_dir="data/nasa_apod"):
     os.makedirs(save_dir, exist_ok=True)
     
     # Generate a filename
-    date_str = apod_data.get('date', datetime.now().strftime("%Y-%m-%d"))
-    title = apod_data.get('title', 'apod').replace(' ', '_').lower()
+    date_str = re.sub(r'[^0-9-]', '', apod_data.get('date', datetime.now().strftime("%Y-%m-%d")))
+    title = re.sub(r'[^a-z0-9_-]', '_', apod_data.get('title', 'apod').lower())[:100]
     
     # Determine file extension from URL
-    extension = os.path.splitext(img_url)[1]
-    if not extension:
+    extension = Path(urlsplit(img_url).path).suffix.lower()
+    if extension not in ('.jpg', '.jpeg', '.png', '.gif', '.webp'):
         extension = '.jpg'  # Default to jpg if no extension found
     
     filename = f"apod_{date_str}_{title}{extension}"
@@ -82,6 +114,7 @@ def download_apod(save_dir="data/nasa_apod"):
     # Check if file already exists
     if os.path.exists(filepath):
         logger.info(f"APOD already exists: {filepath}")
+        _cache_apod(apod_data, save_dir, filename)
         return filepath, apod_data
     
     try:
@@ -89,10 +122,12 @@ def download_apod(save_dir="data/nasa_apod"):
         response = requests.get(img_url, timeout=30)
         response.raise_for_status()
         
-        with open(filepath, 'wb') as f:
-            f.write(response.content)
+        temporary = Path(filepath + '.tmp')
+        temporary.write_bytes(response.content)
+        temporary.replace(filepath)
             
         logger.info(f"Successfully saved APOD to {filepath}")
+        _cache_apod(apod_data, save_dir, filename)
         return filepath, apod_data
     
     except requests.exceptions.RequestException as e:
