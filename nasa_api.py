@@ -52,12 +52,12 @@ def get_mars_rover_photos(rover="curiosity", date=None):
     api_key = NASA_API_KEY
     
     endpoint = "photos" if date else "latest_photos"
-    params = {"api_key": api_key}
+    params = {}
     if date:
         params["earth_date"] = date
-    attempts = [(f"https://api.nasa.gov/mars-photos/api/v1/rovers/{rover}/{endpoint}", params)]
+    attempts = [(f"{config.ROVER_API_BASE}/rovers/{rover}/{endpoint}", params)]
     if not date and rover == "curiosity":
-        attempts.append(("https://api.nasa.gov/mars-photos/api/v1/rovers/perseverance/latest_photos", params))
+        attempts.append((f"{config.ROVER_API_BASE}/rovers/perseverance/latest_photos", params))
 
     for url, params in attempts:
         try:

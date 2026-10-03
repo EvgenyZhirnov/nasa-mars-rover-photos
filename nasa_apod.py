@@ -13,34 +13,12 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-# NASA API base URL and endpoint
-NASA_API_BASE_URL = "https://api.nasa.gov/planetary/apod"
-NASA_API_KEY = os.getenv("NASA_API_KEY", "DEMO_KEY")  # Use demo key if not provided
-
 def get_apod():
-    """
-    Fetch the Astronomy Picture of the Day from NASA API.
-    
-    Returns:
-        dict: APOD data from NASA API
-    """
-    url = NASA_API_BASE_URL
-    params = {
-        "api_key": NASA_API_KEY
-    }
-    
-    logger.info("Fetching NASA Astronomy Picture of the Day")
-    
+    from nasa_hub import apod
     try:
-        response = requests.get(url, params=params, timeout=30)
-        response.raise_for_status()
-        
-        data = response.json()
-        logger.info(f"Successfully fetched APOD: {data.get('title')}")
-        return data
-    
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error fetching APOD: {e}")
+        return apod()
+    except (requests.RequestException, ValueError, KeyError) as exc:
+        logger.warning("APOD metadata unavailable: %s", type(exc).__name__)
         return None
 
 def get_cached_apod(save_dir=None):
@@ -91,7 +69,7 @@ def download_apod(save_dir=None):
         _cache_apod(apod_data, save_dir)
         return None, apod_data
     
-    img_url = apod_data.get('url')
+    img_url = apod_data.get('image_url') or apod_data.get('hdurl')
     if not img_url:
         logger.warning("No image URL found in APOD data")
         return None, apod_data
@@ -121,6 +99,9 @@ def download_apod(save_dir=None):
         logger.info(f"Downloading APOD from {img_url}")
         response = requests.get(img_url, timeout=30)
         response.raise_for_status()
+        if not response.headers.get('Content-Type', '').lower().startswith('image/'):
+            logger.warning('APOD download was not an image')
+            return None, apod_data
         
         temporary = Path(filepath + '.tmp')
         temporary.write_bytes(response.content)

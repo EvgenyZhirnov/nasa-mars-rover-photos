@@ -4,7 +4,7 @@ Module for interacting with NASA's EPIC (Earth Polychromatic Imaging Camera) API
 import os
 import logging
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime
 import json
 
 # Configure logging
@@ -15,56 +15,12 @@ EPIC_API_URL = "https://api.nasa.gov/EPIC/api"
 EPIC_IMAGE_URL = "https://epic.gsfc.nasa.gov/archive/natural"
 
 def get_epic_photos(date=None):
-    """
-    Fetch EPIC photos from NASA API.
-    
-    Args:
-        date (str): Date in the format YYYY-MM-DD, defaults to most recent available
-        
-    Returns:
-        list: List of EPIC photo data objects from NASA API
-    """
-    # Get NASA API key from environment variable
-    api_key = os.environ.get("NASA_API_KEY")
-    if not api_key:
-        logger.error("NASA_API_KEY environment variable not set")
-        return []
-    
-    # Default to today - 2 days (as EPIC images are usually 2-3 days behind)
-    if date is None:
-        target_date = datetime.now() - timedelta(days=2)
-        date = target_date.strftime('%Y-%m-%d')
-    
+    from nasa_hub import get_json
+    suffix = f"/date/{date}" if date else ""
     try:
-        # Try with specific date first
-        url = f"{EPIC_API_URL}/natural/date/{date}"
-        params = {"api_key": api_key}
-        response = requests.get(url, params=params, timeout=30)
-        
-        # If no images for specific date, try to get available dates and use most recent
-        if response.status_code == 404 or (response.status_code == 200 and len(response.json()) == 0):
-            logger.info(f"No EPIC images available for {date}, getting most recent date")
-            url = f"{EPIC_API_URL}/natural/available"
-            dates_response = requests.get(url, params=params, timeout=30)
-            
-            if dates_response.status_code == 200:
-                available_dates = dates_response.json()
-                if available_dates:
-                    # Use the most recent date
-                    most_recent_date = available_dates[-1]
-                    logger.info(f"Using most recent EPIC date: {most_recent_date}")
-                    url = f"{EPIC_API_URL}/natural/date/{most_recent_date}"
-                    response = requests.get(url, params=params, timeout=30)
-        
-        if response.status_code == 200:
-            photos = response.json()
-            logger.info(f"Successfully fetched {len(photos)} EPIC photos")
-            return photos
-        else:
-            logger.error(f"Error fetching EPIC photos: {response.status_code} - {response.text}")
-            return []
-    except Exception as e:
-        logger.error(f"Error in get_epic_photos: {e}")
+        return get_json(f"https://epic.gsfc.nasa.gov/api/natural{suffix}")
+    except (requests.RequestException, ValueError):
+        logger.warning("EPIC metadata unavailable")
         return []
 
 def download_epic_photo(photo_data, save_dir="data/nasa_epic"):
@@ -91,19 +47,15 @@ def download_epic_photo(photo_data, save_dir="data/nasa_epic"):
         date_obj = datetime.strptime(date_str.split(' ')[0], '%Y-%m-%d')
         date_path = date_obj.strftime('%Y/%m/%d')
         
-        # Get NASA API key from environment variable
-        api_key = os.environ.get("NASA_API_KEY", "DEMO_KEY")
-        
-        # Construct the image URL with API key
-        # Format: https://api.nasa.gov/EPIC/archive/natural/2019/05/30/png/epic_1b_20190530003633.png?api_key=DEMO_KEY
-        url = f"https://api.nasa.gov/EPIC/archive/natural/{date_path}/png/{image_name}.png?api_key={api_key}"
+        # Direct NASA EPIC archive; use half-resolution JPEGs for local storage.
+        url = f"https://epic.gsfc.nasa.gov/archive/natural/{date_path}/jpg/{image_name}.jpg"
         
         # Create save directory if it doesn't exist
         os.makedirs(save_dir, exist_ok=True)
         
         # Prepare filename with date and caption for better identification
         caption = photo_data.get('caption', 'earth_view').replace(' ', '_').lower()
-        filename = f"epic_{date_obj.strftime('%Y%m%d')}_{caption}_{image_name}.png"
+        filename = f"epic_{date_obj.strftime('%Y%m%d')}_{caption}_{image_name}.jpg"
         file_path = os.path.join(save_dir, filename)
         
         # Don't re-download if file already exists

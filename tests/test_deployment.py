@@ -75,13 +75,13 @@ class DeploymentTests(unittest.TestCase):
             self.assertEqual(get.call_args.kwargs['timeout'], (5, 30))
 
     def test_apod_cache_is_paired_and_routes_are_offline(self):
-        data = {'title': 'Title / unsafe', 'date': '2026-10-01', 'media_type': 'image', 'url': 'https://example.org/a.jpg?size=2', 'explanation': 'Description'}
-        with patch('nasa_apod.get_apod', return_value=data), patch('nasa_apod.requests.get', return_value=Mock(content=b'image')):
+        data = {'title': 'Title / unsafe', 'date': '2026-10-01', 'media_type': 'image', 'image_url': 'https://example.org/a.jpg?size=2', 'explanation': 'Description'}
+        with patch('nasa_apod.get_apod', return_value=data), patch('nasa_apod.requests.get', return_value=Mock(content=b'image', headers={'Content-Type':'image/jpeg'})):
             path, _ = nasa_apod.download_apod(self.directory)
         self.assertEqual(Path(path).parent, self.directory)
         with patch.object(config, 'NASA_APOD_DIR', self.directory), patch.object(comments, 'get_comments', return_value=[]), patch('requests.get', side_effect=AssertionError('Unexpected network call')):
             with app.test_client() as client:
-                response = client.get('/')
+                response = client.get('/classic')
                 self.assertEqual(response.status_code, 200)
                 self.assertIn(b'Title / unsafe', response.data)
                 self.assertEqual(client.get('/apod/data').json['date'], data['date'])

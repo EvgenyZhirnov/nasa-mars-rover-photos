@@ -20,6 +20,8 @@ def ensure_directories():
 
 def run_initial_sync():
     """Fetch fresh data from all NASA APIs on first startup."""
+    import nasa_hub
+    nasa_hub.prime()
     import nasa_api
     import nasa_apod
     import nasa_epic

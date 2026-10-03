@@ -26,6 +26,11 @@ def healthz():
 
 
 @app.route('/')
+def explorer():
+    return render_template('explorer.html')
+
+
+@app.route('/classic')
 def index():
     apod_info = nasa_apod.get_cached_apod()
 
@@ -256,3 +261,59 @@ def page_not_found(e):
 def server_error(e):
     logger.error(f"500 error: {e}")
     return render_template('index.html', error="Ошибка сервера / Server error"), 500
+
+
+@app.route('/api/explore/<source>')
+def explore_source(source):
+    import nasa_hub
+    if source not in nasa_hub.SOURCES:
+        return jsonify({'error': 'Unknown source'}), 404
+    args = []
+    if source == 'media':
+        from media_catalog import BY_ID
+        query = request.args.get('q', 'James Webb').strip()
+        collection = request.args.get('collection', '')
+        try:
+            page = int(request.args.get('page', '1'))
+            if page < 1 or page > 100:
+                raise ValueError()
+        except ValueError:
+            return jsonify({'error': 'Номер страницы должен быть от 1 до 100'}), 400
+        if collection and collection not in BY_ID:
+            return jsonify({'error': 'Неизвестная подборка'}), 400
+        if not collection and (not query or len(query) > 100):
+            return jsonify({'error': 'Введите запрос от 1 до 100 символов'}), 400
+        args = [BY_ID[collection]['query'] if collection else query, page, collection]
+    elif source == 'asset':
+        import re
+        nasa_id = request.args.get('id', '')
+        if not re.fullmatch(r'[A-Za-z0-9_.-]{1,200}', nasa_id):
+            return jsonify({'error': 'Неверный идентификатор NASA'}), 400
+        args = [nasa_id]
+    elif source == 'rover':
+        rover = request.args.get('rover', 'curiosity')
+        if rover not in ('curiosity', 'perseverance'):
+            return jsonify({'error': 'Unknown rover'}), 400
+        args = [rover]
+    elif source == 'epic':
+        collection = request.args.get('collection', 'natural')
+        date = request.args.get('date', '')
+        if collection not in ('natural', 'enhanced', 'cloud', 'aerosol'):
+            return jsonify({'error': 'Unknown collection'}), 400
+        if date:
+            try:
+                parsed = datetime.strptime(date, '%Y-%m-%d')
+                if parsed.strftime('%Y-%m-%d') != date or parsed.date() > datetime.now().date():
+                    raise ValueError()
+            except ValueError:
+                return jsonify({'error': 'Выберите существующую дату в формате ГГГГ-ММ-ДД'}), 400
+        args = [collection, date]
+    return jsonify(nasa_hub.snapshot(source, *args))
+
+
+@app.route('/api/media/collections')
+def media_collections():
+    from media_catalog import GROUPS, COLLECTIONS
+    return jsonify({'groups': GROUPS, 'collections': [
+        {k: c[k] for k in ('id', 'group', 'title', 'note')} for c in COLLECTIONS
+    ]})
