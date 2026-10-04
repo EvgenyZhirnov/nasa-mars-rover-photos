@@ -1,5 +1,9 @@
 # 🚀 NASA Space Imagery Aggregator
 
+Публичный сайт: https://nasarover.37-27-244-205.sslip.io — тестовый стенд:
+https://preview.nasarover.37-27-244-205.sslip.io (под паролем).
+Порядок обновления через GitHub Actions и откат описаны в [deploy/README.md](deploy/README.md).
+
 **RU** | [EN](#english)
 
 Автоматический сборщик и отображение снимков из NASA. Собирает фотографии с марсоходов, астрономическое фото дня и снимки Земли из космоса.

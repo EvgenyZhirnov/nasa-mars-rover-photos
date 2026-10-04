@@ -70,7 +70,10 @@ jobs:
           KNOWN_HOSTS: '37.27.244.205 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIyxAhb5HzASBfY3UN9Tih0bpTZp7jlRAUIRBv9LYzsp'
           TARGET: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
         run: |
-          test -n "$DEPLOY_KEY" && test -n "$KNOWN_HOSTS"
+          if [ -z "$DEPLOY_KEY" ]; then
+            echo '::error::Add repository secret VPS_DEPLOY_KEY before deploying'
+            exit 1
+          fi
           install -d -m 700 ~/.ssh
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts

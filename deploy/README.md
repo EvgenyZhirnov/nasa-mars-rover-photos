@@ -4,6 +4,10 @@ Public: https://nasarover.37-27-244-205.sslip.io
 
 Preview (password protected): https://preview.nasarover.37-27-244-205.sslip.io
 
+The public proxy serves the gallery read-only; legacy comment/review POSTs are
+blocked. Those routes remain available behind the preview password. Caddy's
+deployment template is `Caddyfile.example`; password hashes stay outside Git.
+
 ## Interface changes
 
 1. Make changes in a feature branch and open a PR. `Test and deploy / verify`

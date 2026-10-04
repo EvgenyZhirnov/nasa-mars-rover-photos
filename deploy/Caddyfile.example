@@ -1,0 +1,21 @@
+{
+    admin off
+}
+nasarover.37-27-244-205.sslip.io {
+    # Public gallery is read-only; legacy comment/review forms stay private.
+    @write not method GET HEAD OPTIONS
+    respond @write "This public gallery is read-only" 405
+    header X-Content-Type-Options nosniff
+    reverse_proxy 127.0.0.1:5082 {
+        header_up -Authorization
+    }
+}
+preview.nasarover.37-27-244-205.sslip.io {
+    basic_auth {
+        explorer {$PREVIEW_PASSWORD_HASH}
+    }
+    header X-Robots-Tag "noindex, nofollow"
+    reverse_proxy 127.0.0.1:5083 {
+        header_up -Authorization
+    }
+}

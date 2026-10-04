@@ -26,6 +26,22 @@ def validate_manifest(archive, image):
         if info.size > 65536 or not info.isfile():
             raise ValueError('Invalid image manifest')
         manifest = json.load(tar.extractfile(info))
+        # New Docker versions load the OCI index, not only manifest.json.
+        try:
+            index_info = tar.getmember('index.json')
+        except KeyError:
+            index_info = None
+        if index_info:
+            if index_info.size > 65536 or not index_info.isfile():
+                raise ValueError('Invalid OCI index')
+            descriptors = json.load(tar.extractfile(index_info)).get('manifests', [])
+            if len(descriptors) != 1:
+                raise ValueError('OCI archive must contain one release')
+            annotations = descriptors[0].get('annotations', {})
+            if annotations.get('io.containerd.image.name') != 'docker.io/library/' + image:
+                raise ValueError('OCI image name mismatch')
+            if annotations.get('org.opencontainers.image.ref.name') != image.split(':')[1]:
+                raise ValueError('OCI reference mismatch')
     if len(manifest) != 1 or manifest[0].get('RepoTags') != [image]:
         raise ValueError('Archive must contain only the requested release tag')
 
