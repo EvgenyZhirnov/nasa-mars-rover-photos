@@ -42,8 +42,8 @@ validates the target, SHA, image tag, and image revision. It cannot modify Compo
 mount host directories, or execute arbitrary SSH commands. App containers run
 as UID 1000 with no Linux capabilities and a read-only root filesystem.
 
-Add GitHub Actions secrets `VPS_DEPLOY_KEY` (the dedicated private key) and
-`VPS_KNOWN_HOSTS` (the verified server host-key line). Never use the administrator
+Add GitHub Actions secret `VPS_DEPLOY_KEY` (the dedicated private key). The verified
+public SSH host key is pinned in the workflow. Never use the administrator
 SSH key. Configure protected environments/branch rules in GitHub as available;
 workflow files alone do not enable branch protection.
 

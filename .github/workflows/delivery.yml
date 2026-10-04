@@ -66,7 +66,8 @@ jobs:
       - name: Deploy verified image with rollback
         env:
           DEPLOY_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
-          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          # Public host key verified through the administrator's existing known_hosts.
+          KNOWN_HOSTS: '37.27.244.205 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIyxAhb5HzASBfY3UN9Tih0bpTZp7jlRAUIRBv9LYzsp'
           TARGET: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
         run: |
           test -n "$DEPLOY_KEY" && test -n "$KNOWN_HOSTS"
