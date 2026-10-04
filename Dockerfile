@@ -1,5 +1,10 @@
 FROM python:3.11-slim
 
+ARG APP_REVISION=development
+ENV APP_REVISION=$APP_REVISION PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+LABEL org.opencontainers.image.source="https://github.com/EvgenyZhirnov/nasa-mars-rover-photos"
+LABEL org.opencontainers.image.revision=$APP_REVISION
+
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -8,14 +13,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN useradd --create-home appuser
 
-COPY pyproject.toml .
-RUN pip install --no-cache-dir \
-    "flask>=3.1.0" \
-    "gunicorn>=23.0.0" \
-    "requests>=2.32.3" \
-    "schedule>=1.2.2" \
-    "imageio[ffmpeg]>=2.37.0" \
-    "python-telegram-bot>=22.0"
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 

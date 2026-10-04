@@ -1,0 +1,81 @@
+name: Test and deploy
+on:
+  pull_request:
+  push:
+    branches: [main, preview]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: delivery-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - run: pip install -r requirements.txt
+      - run: python -m unittest discover -s tests
+      - run: node --check static/explorer.js
+      - run: git diff --check
+      - name: Build release image
+        run: docker build --build-arg APP_REVISION="$GITHUB_SHA" -t "nasarover-release:$GITHUB_SHA" .
+      - name: Verify image startup and routes
+        run: |
+          docker run -d --name smoke -p 127.0.0.1:5099:5000 -e SESSION_SECRET=ci-only-test-secret "nasarover-release:$GITHUB_SHA"
+          python deploy/smoke.py http://127.0.0.1:5099 "$GITHUB_SHA"
+      - name: Save verified image
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/preview')
+        run: docker save "nasarover-release:$GITHUB_SHA" | gzip > release.tar.gz
+      - name: Upload image to deployment job
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/preview')
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: image-${{ github.sha }}
+          path: release.tar.gz
+          retention-days: 7
+          compression-level: 0
+      - name: Container logs
+        if: failure()
+        run: docker logs smoke || true
+
+  deploy:
+    needs: verify
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/preview')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
+      url: ${{ github.ref == 'refs/heads/main' && 'https://nasarover.37-27-244-205.sslip.io' || 'https://preview.nasarover.37-27-244-205.sslip.io' }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: image-${{ github.sha }}
+      - name: Deploy verified image with rollback
+        env:
+          DEPLOY_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          TARGET: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
+        run: |
+          test -n "$DEPLOY_KEY" && test -n "$KNOWN_HOSTS"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 \
+            nasarover-ci@37.27.244.205 "deploy $TARGET $GITHUB_SHA" < release.tar.gz
+      - name: Remove temporary key
+        if: always()
+        run: rm -f ~/.ssh/deploy

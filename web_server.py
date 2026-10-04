@@ -22,7 +22,7 @@ app.secret_key = config.SESSION_SECRET or "change-me-set-SESSION_SECRET-env-var"
 
 @app.route('/healthz')
 def healthz():
-    return jsonify({'status': 'ok'})
+    return jsonify({'status': 'ok', 'revision': os.getenv('APP_REVISION', 'development')})
 
 
 @app.route('/')

@@ -43,3 +43,4 @@ replit.nix
 Thumbs.db
 
 .venv*/
+release.tar.gz
