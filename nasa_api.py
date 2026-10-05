@@ -4,6 +4,7 @@ Module for interacting with NASA's Mars Rover Photos API.
 import logging
 import requests
 from datetime import datetime
+from email.utils import parsedate_to_datetime
 import time
 import random
 from pathlib import Path
@@ -22,8 +23,9 @@ _MAX_BACKOFF_SECONDS  = 60 * 60  # cap at 1 hour
 def _record_failure():
     global _consecutive_failures, _backoff_until
     _consecutive_failures += 1
-    wait = min(300 * (2 ** (_consecutive_failures - 1)), _MAX_BACKOFF_SECONDS)
-    _backoff_until = time.time() + wait
+    wait = min(300 * (2 ** min(_consecutive_failures - 1, 4)), _MAX_BACKOFF_SECONDS)
+    _backoff_until = max(_backoff_until, time.time() + wait)
+    wait = max(0, int(_backoff_until - time.time()))
     logger.warning(
         f"Mars API consecutive failures: {_consecutive_failures}. "
         f"Circuit breaker: next retry in {wait // 60} min"
@@ -49,17 +51,13 @@ def get_mars_rover_photos(rover="curiosity", date=None):
     """
     api_key = NASA_API_KEY
     
-    # NASA API documentation: 
-    # https://api.nasa.gov/mars-photos/api/v1/rovers/curiosity/photos?sol=1000&api_key=DEMO_KEY
-    
-    attempts = [
-        # Attempt 1: Standard NASA API Sol 1000 (Very stable)
-        ("https://api.nasa.gov/mars-photos/api/v1/rovers/curiosity/photos", {"sol": "1000", "api_key": api_key}),
-        # Attempt 2: Perseverance latest_photos
-        ("https://api.nasa.gov/mars-photos/api/v1/rovers/perseverance/latest_photos", {"api_key": api_key}),
-        # Attempt 3: Heroku mirror
-        ("https://mars-photos.herokuapp.com/api/v1/rovers/curiosity/latest_photos", {}),
-    ]
+    endpoint = "photos" if date else "latest_photos"
+    params = {}
+    if date:
+        params["earth_date"] = date
+    attempts = [(f"{config.ROVER_API_BASE}/rovers/{rover}/{endpoint}", params)]
+    if not date and rover == "curiosity":
+        attempts.append((f"{config.ROVER_API_BASE}/rovers/perseverance/latest_photos", params))
 
     for url, params in attempts:
         try:
@@ -74,11 +72,18 @@ def get_mars_rover_photos(rover="curiosity", date=None):
                     return photos
 
             elif response.status_code == 429:
-                retry_after = int(response.headers.get('Retry-After', 3600))
+                value = response.headers.get('Retry-After', '3600')
+                try:
+                    retry_after = max(0, int(value))
+                except (ValueError, TypeError):
+                    try:
+                        retry_after = max(0, parsedate_to_datetime(value).timestamp() - time.time())
+                    except (ValueError, TypeError, OverflowError):
+                        retry_after = 3600
                 logger.warning(f"Rate limit (429) from {url}. Backing off {retry_after}s.")
                 # Directly set the breaker so the caller backs off
                 global _backoff_until
-                _backoff_until = time.time() + retry_after
+                _backoff_until = max(_backoff_until, time.time() + retry_after)
                 return []
 
             else:

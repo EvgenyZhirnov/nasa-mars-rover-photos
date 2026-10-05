@@ -27,3 +27,6 @@ APOD_UPDATE_TIME       = "00:30"
 EPIC_UPDATE_TIME       = "01:00"
 ANIMATION_CREATE_TIME  = "16:00"
 ANIMATION_SEND_TIME    = "16:05"
+
+# Public community replacement for the retired Mars Rover Photos API.
+ROVER_API_BASE = os.getenv("ROVER_API_BASE", "https://rovers.nebulum.one/api/v1").rstrip("/")

@@ -3,9 +3,12 @@ Bootstrap: single place that wires everything together on startup.
 Called once — from main.py when the process starts.
 """
 import logging
+import threading
 import config
 
 logger = logging.getLogger(__name__)
+_lock = threading.Lock()
+_background_thread = None
 
 
 def ensure_directories():
@@ -17,6 +20,8 @@ def ensure_directories():
 
 def run_initial_sync():
     """Fetch fresh data from all NASA APIs on first startup."""
+    import nasa_hub
+    nasa_hub.prime()
     import nasa_api
     import nasa_apod
     import nasa_epic
@@ -57,14 +62,26 @@ def start_services():
         logger.info("Telegram bot token not set — skipping bot startup")
 
 
+def _run_background_services():
+    # Keep initial sync and scheduled jobs sequential to avoid duplicate writes.
+    try:
+        run_initial_sync()
+    finally:
+        start_services()
+
+
 def bootstrap():
-    """Run the full startup sequence exactly once."""
-    logger.info("Bootstrap started")
-    ensure_directories()
-
-    import comments
-    comments.init_db()
-
-    run_initial_sync()
-    start_services()
-    logger.info("Bootstrap complete")
+    """Prepare local storage and start one background thread per worker process."""
+    global _background_thread
+    with _lock:
+        if _background_thread is not None:
+            return _background_thread
+        ensure_directories()
+        import comments
+        comments.init_db()
+        _background_thread = threading.Thread(
+            target=_run_background_services, daemon=True, name="nasa-bootstrap"
+        )
+        _background_thread.start()
+    logger.info("Local storage ready; NASA sync continues in background")
+    return _background_thread
